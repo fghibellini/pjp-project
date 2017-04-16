@@ -1,0 +1,48 @@
+==== Semestrální práce ====
+
+Rozšiřte skupinu překladačů gcc/llvm o nový jednoduchý frontend zpracovávající vstupní jazyk inspirovaný jazykem Pascal. Výstupem frontendu bude abstraktní syntaktický strom ve formátu GENERIC překladačů gcc/IR překladače llvm. V našem vstupním jazyce se omezte na deklaraci konstant, globálních proměnných a funkcí, a datový typ int. Číselné konstanty umožněte zadávat dekadicky, hexadecimálně a octalově. Podporujte aritmetické výrazy s operacemi +, -, *, div, mod a závorkami. Z příkazů podporujte přiřazení, if, while, for, readln a writeln. Samozřejmě podporujte deklaraci a volání funkcí, procedur s partametry, i v rekurzi.
+
+Pro vstup a výstup (readln a writeln) vytvářejte uzly stromy reprezntující volání standardních funkcí scanf a printf, které jsou k dispozici přilinkováním v prostředí semestrální úlohy. Načítejte a vypisujte vždy jedno číslo.
+
+Váš frontend bude muset pro zisk bodů za jednotlivé úrovně semestrální práce zkompilovat jednoduché programy. Tyto programy jsou dostupné a slouží především pro zjasnění syntaxe.
+
+Pro inspiraci doporučujeme již hotový překladač jazyka Mila, který je Vaším studijním materiálem. https://edux.fit.cvut.cz/courses/BI-PJP/_media/semestral_work/semestralka.zip
+
+Kompilace gcc a vzorového frontendu byla testována na Ubuntu 32/64bit (13.10) a Opensuse 64bit (13.2). První kompilace (jednovláknová) zabere přibližně 1.5 hodiny (Core i7@2.0GHz), vícevláknová kompilace je podporována. Zdrojové kódy a kompilované soubory dohromady zaberou přibližně 5GB místa.
+
+Vstupem Vašeho programu bude soubor se zdrojovým kódem.
+
+Výstupem Vašeho programu bude abstraktní syntaktický strom ve formátu GENERIC překladačů gcc, který dále gcc zpracuje tzv. backendem a vytvoří spustitelný binární soubor, nebo reprezentace ve vnitřním formátu překladače llvm, který dále llvm zpracuje a vytvoří spustitelný binární soubor.
+
+Dokumentaci ke gcc, psaní frontendu pro gcc a struktur generic najdete na webu (http://gcc.gnu.org/onlinedocs/gccint/ sekce 5. Language front Ends in GCC, 9. Passes and Files of the Compiler a 10. GENERIC). K dispozici je ukázkový frontend, který obsahuje ukázky struktur generic všeho co je požadováno a šablona frontendu https://gitlab.fit.cvut.cz/pjp/gcc-samples.
+
+Dokumentaci k llvm, psaní frontendu pro llvm a vnitřnímu formátu překladače llvm najdete na webu (http://llvm.org/docs/tutorial/).
+
+Skript na stáhnutí gcc/llvm, šablony frontendů a celkovou kompilaci, ukázkové zdrojové kódy máte dostupné na https://gitlab.fit.cvut.cz/pjp/semestralwork, https://gitlab.fit.cvut.cz/pjp/gcc-emptyfrontend, https://gitlab.fit.cvut.cz/pjp/gcc-samples a https://gitlab.fit.cvut.cz/pjp/llvm-emptyfrontend
+
+Semestrální práce psaná pro llvm není podporovaná ale je akceptovaná.
+
+V případě že nemáte operační systém Linux můžete využít obrazy pro VirtualBox se staženými zdrojovýmí kódy gcc a se zkompilovaným prázdným frontendem. 32 bit verze http://users.fit.cvut.cz/~travnja3/BI-PJP/OpenSUSE_32.ova a 64 bit verze http://users.fit.cvut.cz/~travnja3/BI-PJP/OpenSUSE.ova
+
+Termíny pro odevzdání práce jsou následující:
+  * do konce 5. týdne zkouškového (student může za semestrální práci získat plný počet bodů)
+  * od konce 5. týdne zkouškového do konce zkouškového (bude uplatněna penalizace odečtem 50 procent ze získaných bodů)
+
+Svá řešení odevzdávejte přes Progtest jako jeden zip soubor, jehož součástí bude:
+  * Kompletní funkční kód frontendu včetně nezdrojových souborů jako jsou konfigurační soubory a podobně.
+  * Alespoň dva vlastní programy prezentující vámi implementované vlastnosti jazyka.
+
+Bodové hodnocení bude záviset na počtu implementovaných funkcionalit.
+
+Main funkce, výpis čísel, načítání čísel, globální proměnné, výrazy, přiřazení, číselné konstanty v dekadické soustavě: základ,
+Číselné konstanty v hexadecimální a oktalové soustavě: 5%,
+If, While (společně s příkazem break): 10%
+For (to i downto; společně s příkazem break): 10%,
+Vnořené bloky: 10%,
+Statické pole (indexované v jakémkoli intervalu hodnot): 15%,
+
+Procedury, Funkce, lokální proměnné, exit: 15%,
+Parametry funkcí a procedur: 10%,
+Rekurze: 10%,
+Nepřímá rekurze: 15%
+
