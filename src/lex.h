@@ -35,7 +35,13 @@ struct Lexem {
 
 string lexem_to_string(Lexem l);
 
+bool is_ident(Lexem l);
+
+bool is_int_literal(Lexem l);
+
 bool is_epsilon(Lexem l);
+
+bool is_special(Lexem l, string val);
 
 class ParsingError : public runtime_error
 {

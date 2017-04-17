@@ -23,9 +23,24 @@ string lexem_to_string(Lexem l)
     return s;
 }
 
+bool is_ident(Lexem l)
+{
+    return l.type == Lexem::IDENT;
+}
+
+bool is_int_literal(Lexem l)
+{
+    return l.type == Lexem::INT_LITERAL;
+}
+
 bool is_epsilon(Lexem l)
 {
     return l.type == Lexem::EPSILON;
+}
+
+bool is_special(Lexem l, string val)
+{
+    return l.type == Lexem::SPECIAL && l.special_val == val;
 }
 
 Lexem lexem_epsilon(int line, int col)
@@ -137,7 +152,23 @@ bool is_keyword(string x)
        || x == "else"
        || x == "while"
        || x == "do"
-       || x == "write");
+       || x == "for"
+       || x == "to"
+       || x == "downto"
+       || x == "writeln"
+       || x == "mod"
+       || x == "div"
+       || x == "function"
+       || x == "procedure"
+       || x == "program"
+       || x == "integer"
+       || x == "array"
+       || x == "of"
+       || x == "and"
+       || x == "or"
+       || x == "forward"
+       || x == "exit"
+       || x == "readln");
 }
 
 Lexem LexemReader::next()
@@ -176,14 +207,22 @@ Lexem LexemReader::next()
         } else {
             return lexem_ident(start_line, start_col, acc);
         }
+    } else if (c == '=' || c == '+' || c == '-' || c == '*' || c == ',' || c == ';' || c == '(' || c == ')') {
+        next_char();
+        return lexem_special(start_line, start_col, string(1,c));
     } else if (c == ':') {
         if (next_char() != '=') {
             throw parsing_error("Expected '='!");
         }
         next_char();
         return lexem_special(start_line, start_col, ":=");
-    } else if (c == '+') {
-        return lexem_special(start_line, start_col, "+");
+    } else if (c == '<' || c == '>') {
+        if (next_char() == '=') {
+            next_char();
+            return lexem_special(start_line, start_col, string(1, c) + "=");
+        } else {
+            return lexem_special(start_line, start_col, string(1, c));
+        }
     } else {
         throw parsing_error("Expected start of lexem!");
     }

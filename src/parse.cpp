@@ -4,6 +4,7 @@
 
 #include "lex.h"
 #include "parser.h"
+#include "print-visitor.h"
 
 using namespace std;
 
@@ -13,7 +14,9 @@ int main(int argc, const char *argv[])
         lex::LexemReader lreader(cin);
         Parser parser(lreader);
 
-        parser.parse();
+        auto res = parser.parse();
+        PrintVisitor coutAstPrinter(cout);
+        res.accept(coutAstPrinter);
         
         return 0;
     } else if (argc == 2 && strcmp(argv[1], "--lex") == 0) {
