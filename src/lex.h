@@ -34,6 +34,7 @@ struct Lexem {
 };
 
 string lexem_to_string(Lexem l);
+string special_string_val(Lexem l);
 
 bool is_ident(Lexem l);
 

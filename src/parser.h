@@ -8,6 +8,15 @@
 
 using namespace std;
 
+class ParseError : public runtime_error
+{
+    string msg;
+    lex::Lexem position;
+    string what_msg;
+public:
+    ParseError(const std::string& what_arg, lex::Lexem pos);
+    const char* what() const noexcept;
+};
 
 class Parser
 {
@@ -22,18 +31,19 @@ private:
     void consumeSpecial(string special_val);
     string consume_ident();
     int consume_int_literal();
-    unique_ptr<ast::Block> parseBlock();
-    unique_ptr<ast::Expr> parseFactor();
-    unique_ptr<ast::Expr> parseTerm();
-    unique_ptr<ast::Expr> parseExpr();
-    unique_ptr<ast::Statement> parseStatement();
+    ast::Block *parseBlock();
+    ast::Expr *parseFactor();
+    ast::Expr *parseTerm();
+    ast::Expr *parseExpr();
+    ast::Statement *parseStatement();
+    ast::Scope *parseScope();
 
 public:
     // constructor
     Parser(lex::LexemReader &is);
 
     // public methods
-    ast::Program parse();
+    ast::Program *parse();
 };
 
 #endif

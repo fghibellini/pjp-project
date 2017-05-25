@@ -18,25 +18,29 @@ struct Node
     virtual void accept(Visitor &v) const = 0;
 };
 
-struct Expr : public Node
+struct Statement : public Node
+{
+};
+
+struct Expr : public Statement
 {
 };
 
 struct UnaryMinusExpression : public Expr
 {
-    unique_ptr<Expr> expr;
+    Expr *expr;
 public:
-    UnaryMinusExpression(unique_ptr<Expr> &&expr);
+    UnaryMinusExpression(Expr *expr);
     virtual void accept(Visitor &v) const;
 };
 
 struct BinaryOpExpression : public Expr
 {
     string op;
-    unique_ptr<Expr> left;
-    unique_ptr<Expr> right;
+    Expr *left;
+    Expr *right;
 public:
-    BinaryOpExpression(string &&op, unique_ptr<Expr> &&left, unique_ptr<Expr> &&right);
+    BinaryOpExpression(string op, Expr *left, Expr *right);
     virtual void accept(Visitor &v) const;
 };
 
@@ -52,12 +56,8 @@ struct IdentExpr : public Expr
 {
     string ident;
 public:
-    IdentExpr(string &&ident);
+    IdentExpr(string ident);
     virtual void accept(Visitor &v) const;
-};
-
-struct Statement : public Node
-{
 };
 
 // deprecated
@@ -69,37 +69,38 @@ public:
 
 struct IfStatement : public Statement
 {
-    unique_ptr<Expr> condition;
-    unique_ptr<Statement> trueBranch;
-    unique_ptr<Statement> elseBranch;
+    Expr *condition;
+    Statement *trueBranch;
+    Statement *elseBranch;
 public:
-    IfStatement(unique_ptr<Expr> &&condition, unique_ptr<Statement> &&trueBranch, unique_ptr<Statement> &&elseBranch);
+    IfStatement(Expr *condition, Statement *trueBranch, Statement *elseBranch);
     virtual void accept(Visitor &v) const;
 };
 
 struct WhileStatement : public Statement
 {
-    unique_ptr<Expr> condition;
-    unique_ptr<Statement> body;
+    Expr *condition;
+    Statement *body;
 public:
-    WhileStatement(unique_ptr<Expr> &&condition, unique_ptr<Statement> &&body);
+    WhileStatement(Expr * condition, Statement * body);
     virtual void accept(Visitor &v) const;
 };
 
 struct AssignmentStatement : public Statement
 {
     string left;
-    unique_ptr<Expr> right;
+    Expr *right;
 public:
-    AssignmentStatement(string left, unique_ptr<Expr> &&right);
+    AssignmentStatement(string left, Expr * right);
     virtual void accept(Visitor &v) const;
 };
 
-struct WriteStmt : public Statement
+struct CallFactor : public Expr
 {
-    unique_ptr<Expr> expr;
+    string fname;
+    vector<Expr *> expr;
 public:
-    WriteStmt(unique_ptr<Expr> &&expr);
+    CallFactor(string fname, vector<Expr *> expr);
     virtual void accept(Visitor &v) const;
 };
 
@@ -111,7 +112,7 @@ struct ConstDeclaration : public Declaration
 {
     map<string,int> decls;
 public:
-    ConstDeclaration(map<string,int> &&decls);
+    ConstDeclaration(map<string,int> decls);
     virtual void accept(Visitor &v) const;
 };
 
@@ -119,31 +120,63 @@ struct VarDeclaration : public Declaration
 {
     vector<string> varnames;
 public:
-    VarDeclaration(vector<string> &&varnames);
+    VarDeclaration(vector<string> varnames);
     virtual void accept(Visitor &v) const;
 };
 
 struct Block : public Statement
 {
-    vector<unique_ptr<Statement>> statements;
+    vector<Statement *> statements;
 public:
-    Block(vector<unique_ptr<Statement>> statements);
+    Block(vector<Statement *> statements);
+    virtual void accept(Visitor &v) const;
+};
+
+struct Scope : public Node
+{
+    vector<Declaration *> declarations;    
+    Block *body;
+public:
+    Scope(vector<Declaration *> declarations, Block *body);
+    virtual void accept(Visitor &v) const;
+};
+
+struct FunctionDecl : public Node
+{
+    vector<Declaration *> declarations;    
+    Block *body;
+public:
+    FunctionDecl(vector<Declaration *> declarations, Block *body);
+    virtual void accept(Visitor &v) const;
+};
+
+struct ProcedureDecl : public Node
+{
+    vector<Declaration *> declarations;    
+    Block *body;
+public:
+    ProcedureDecl(vector<Declaration *> declarations, Block *body);
     virtual void accept(Visitor &v) const;
 };
 
 struct Program : public Node
 {
-    vector<unique_ptr<Declaration>> declarations;    
-    Block body;
+    string name;
+    vector<ast::FunctionDecl *> functions;
+    vector<ast::ProcedureDecl *> procedures;
+    ast::Scope *main;
 public:
-    Program(vector<unique_ptr<Declaration>> &&declarations, Block &&body);
+    Program(string name, vector<FunctionDecl *> functions, vector<ProcedureDecl *> procedures, Scope *main);
     virtual void accept(Visitor &v) const;
 };
 
 struct Visitor {
     virtual void visit(const Program &p);
     virtual void visit(const IntExpr &e);
-    virtual void visit(const WriteStmt &s);
+    virtual void visit(const CallFactor &s);
+    virtual void visit(const FunctionDecl &s);
+    virtual void visit(const ProcedureDecl &s);
+    virtual void visit(const Scope &s);
     virtual void visit(const Block &s);
     virtual void visit(const AssignmentStatement &s);
     virtual void visit(const ConstDeclaration &s);

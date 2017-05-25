@@ -2,6 +2,28 @@
 #include "parser.h"
 #include <iostream>
 
+ParseError::ParseError(const std::string& what_arg, lex::Lexem pos)
+: runtime_error(what_arg)
+, msg(what_arg)
+, position(pos)
+, what_msg(("PARSING_ERROR [" + msg + "] at token [" + lex::lexem_to_string(position) + "]").c_str())
+{
+}
+
+bool is_ident_like(lex::Lexem s)
+{
+    return is_ident(s)
+      || is_special(s, "read")
+      || is_special(s, "readln")
+      || is_special(s, "write")
+      || is_special(s, "writeln");
+}
+
+const char* ParseError::what() const noexcept
+{
+    return what_msg.c_str(); 
+}
+
 lex::Lexem Parser::current()
 {
     return _current;
@@ -23,7 +45,7 @@ void Parser::consumeSpecial(string special_val)
     if (lex::is_special(s, special_val)) {
         next();
     } else {
-        throw runtime_error("expected " + special_val + "!"); // TODO include location
+        throw ParseError("expected " + special_val + "!", s);
     }
 }
 
@@ -35,7 +57,7 @@ string Parser::consume_ident()
         next();
         return varname;
     } else {
-        throw runtime_error("expected identifier!"); // TODO include location
+        throw ParseError("expected identifier!", s);
     }
 }
 
@@ -47,29 +69,51 @@ int Parser::consume_int_literal()
         next();
         return val;
     } else {
-        throw runtime_error("expected integer literal!"); // TODO include location
+        throw ParseError("expected integer literal!", s);
     }
 }
 
-unique_ptr<ast::Expr> Parser::parseFactor()
+ast::Expr * Parser::parseFactor()
 {
-    if (is_ident(current())) {
-        string ident = consume_ident();
-        return make_unique<ast::IdentExpr>(move(ident));
+    if (is_ident_like(current())) {
+        string ident;
+        if (is_ident(current())) {
+            ident = consume_ident();
+        } else {
+            ident = special_string_val(current());
+            next();
+        }
+        if (is_special(current(), "(")) {
+            cout << "processing call!" << endl;
+            consumeSpecial("(");
+            vector<ast::Expr *> args;
+            while (true) {
+                args.push_back(parseExpr());
+                if (is_special(current(), ",")) {
+                    consumeSpecial(",");
+                } else {
+                    consumeSpecial(")");
+                    break;
+                }
+            }
+            return new ast::CallFactor(ident, args);
+        } else {
+            return new ast::IdentExpr(ident);
+        }
     } else if (is_int_literal(current())) {
         int val = consume_int_literal();
-        return make_unique<ast::IntExpr>(val);
+        return new ast::IntExpr(val);
     } else if (is_special(current(), "(")) {
         consumeSpecial("(");
         auto e = parseExpr();
         consumeSpecial(")");
         return e;
     } else {
-        throw runtime_error("invalid start of factor!"); // TODO include location
+        throw ParseError("invalid start of factor!", current());
     }
 }
 
-unique_ptr<ast::Expr> Parser::parseTerm()
+ast::Expr * Parser::parseTerm()
 {
     auto left = parseFactor();
     while (true)
@@ -77,11 +121,11 @@ unique_ptr<ast::Expr> Parser::parseTerm()
         if (is_special(current(), "*")) {
             next();
             auto right = parseFactor();
-            left = make_unique<ast::BinaryOpExpression>("*", move(left), move(right));
+            left = new ast::BinaryOpExpression("*", left, right);
         } else if (is_special(current(), "/")) {
             next();
             auto right = parseFactor();
-            left = make_unique<ast::BinaryOpExpression>("/", move(left), move(right));
+            left = new ast::BinaryOpExpression("/", left, right);
         } else {
             break;
         }
@@ -89,26 +133,26 @@ unique_ptr<ast::Expr> Parser::parseTerm()
     return left;
 }
 
-unique_ptr<ast::Expr> Parser::parseExpr()
+ast::Expr * Parser::parseExpr()
 {
-    unique_ptr<ast::Expr> t0;
+    ast::Expr * t0;
     if (is_special(current(), "-")) {
         consumeSpecial("-");
         auto t0_ = parseTerm();
-        t0 = make_unique<ast::UnaryMinusExpression>(move(t0_));
+        t0 = new ast::UnaryMinusExpression(t0_);
     } else {
         t0 = parseTerm();
     }
-    auto left = move(t0);
+    auto left = t0;
     while (true) {
         if (is_special(current(), "-")) {
             consumeSpecial("-");
             auto right = parseTerm();
-            left = make_unique<ast::BinaryOpExpression>("-", move(left), move(right));
+            left = new ast::BinaryOpExpression("-", left, right);
         } else if (is_special(current(), "+")) {
             consumeSpecial("+");
             auto right = parseTerm();
-            left = make_unique<ast::BinaryOpExpression>("+", move(left), move(right));
+            left = new ast::BinaryOpExpression("+", left, right);
         } else {
             break;
         }
@@ -116,77 +160,76 @@ unique_ptr<ast::Expr> Parser::parseExpr()
     return left;
 }
 
-unique_ptr<ast::Statement> Parser::parseStatement()
+ast::Statement * Parser::parseStatement()
 {
     lex::Lexem s = current();
-    if (is_ident(s)) {
+    if (is_ident_like(s)) {
+        return parseExpr();
         string ident = consume_ident();
         if (is_special(current(), ":=")) {
             next();
             auto expr = parseExpr();
-            return make_unique<ast::AssignmentStatement>(ident, move(expr));
+            return new ast::AssignmentStatement(ident, expr);
         //}
         //else if (is_special(current(), "(")) {
         //    next();
         //    auto arg = parseExpr();
         //    consumeSpecial(")");
-        //    return make_unique<ast::CallStatement>(ident, move(expr));
+        //    return new ast::CallStatement(ident, expr);
         //} else if (is_special(current(), "[")) {
         //    next();
         //    auto index = parseExpr();
         //    consumeSpecial("]");
-        //    return make_unique<ast::ArrayAccess>(ident, move(index));
+        //    return new ast::ArrayAccess(ident, index);
         } else {
-            throw runtime_error("Invalid symbol after identifier in statement expected one of { [, (, := }!");
+            throw ParseError("Invalid symbol after identifier in statement expected one of { [, (, := }!", current());
         }
-    } else if (is_special(s, "write")) {
-        next();
-        auto expr = parseExpr();
-        return make_unique<ast::WriteStmt>(move(expr));
     } else if (is_special(s, "if")) {
         next();
         auto condition = parseExpr();
         consumeSpecial("then");
         auto trueBranch = parseStatement();
-        unique_ptr<ast::Statement> elseBranch = nullptr;
+        ast::Statement * elseBranch = nullptr;
         if (is_special(current(), "else")) {
             consumeSpecial("else");
             elseBranch = parseStatement();
         }
-        return make_unique<ast::IfStatement>(move(condition), move(trueBranch), move(elseBranch));
+        return new ast::IfStatement(condition, trueBranch, elseBranch);
     } else if (is_special(s, "while")) {
         next();
         auto condition = parseExpr();
         consumeSpecial("do");
         auto body = parseStatement();
-        return make_unique<ast::WhileStatement>(move(condition), move(body));
+        return new ast::WhileStatement(condition, body);
     } else if (is_special(s, "begin")) {
         return parseBlock();
     } else {
-        throw runtime_error("Invalid start of statement!");
-        //return make_unique<ast::EmptyStatement>();
+        throw ParseError("Invalid start of statement!", s);
+        //return new ast::EmptyStatement();
     }
 }
 
-unique_ptr<ast::Block> Parser::parseBlock()
+ast::Block * Parser::parseBlock()
 {
     consumeSpecial("begin");
-    vector<unique_ptr<ast::Statement>> statements;
-    statements.push_back(parseStatement());
-    while (is_special(current(), ";")) {
+    vector<ast::Statement *> statements;
+    while (true) {
         statements.push_back(parseStatement());
+        if (is_special(current(), ";")) {
+            consumeSpecial(";");
+        } else {
+            consumeSpecial("end");
+            break;
+        }
     }
-    consumeSpecial("end");
-    return make_unique<ast::Block>(move(statements));
+    return new ast::Block(statements);
 }
 
-ast::Program Parser::parse()
+ast::Scope * Parser::parseScope()
 {
-    _lexem_reader.init();
-    next();
-
-    vector<unique_ptr<ast::Declaration>> declarations;
-    while (true) {
+    vector<ast::Declaration *> declarations;
+    while (true)
+    {
         lex::Lexem s = current();
         if (lex::is_special(s, "const")) {
             next();
@@ -204,7 +247,7 @@ ast::Program Parser::parse()
                 bindings.emplace(name,val);
             }
             consumeSpecial(";");
-            declarations.push_back(make_unique<ast::ConstDeclaration>(move(bindings)));
+            declarations.push_back(new ast::ConstDeclaration(bindings));
         } else if (lex::is_special(s, "var")) {
             next();
             vector<string> varnames;
@@ -215,7 +258,7 @@ ast::Program Parser::parse()
                 varnames.push_back(consume_ident());
             }
             consumeSpecial(";");
-            declarations.push_back(make_unique<ast::VarDeclaration>(move(varnames)));
+            declarations.push_back(new ast::VarDeclaration(varnames));
         } else {
             break;
         }
@@ -223,9 +266,48 @@ ast::Program Parser::parse()
 
     auto body = parseBlock();
 
-    if (!lex::is_epsilon(current())) {
-        throw runtime_error("Expected end of file!");
+    cout << "parsed block!" << endl;
+
+    return new ast::Scope(declarations, body);
+}
+
+ast::Program *Parser::parse()
+{
+    _lexem_reader.init();
+    next();
+
+    cout << "lexer initialized!" << endl;
+
+    consumeSpecial("program");
+    string name = consume_ident();
+    consumeSpecial(";");
+
+    lex::Lexem s = current();
+
+    cout << "gonna parse function decls" << endl;
+    vector<ast::FunctionDecl *> functions;
+    vector<ast::ProcedureDecl *> procedures;
+    while (false)
+    {
+        if (lex::is_special(s, "function")) {
+            // TODO
+        } else if (lex::is_special(s, "procedure")) {
+            // TODO
+        }
+        s = current();
     }
 
-    return ast::Program(move(declarations), move(*body.release()));
+    if (!(lex::is_special(s, "begin") || lex::is_special(s, "var") || lex::is_special(s, "const"))) {
+        throw ParseError("Expected function, procedure or scope.", s);
+    } else {
+        cout << "gonna parse scope of program: " << name << endl;
+        ast::Scope * main = parseScope();
+
+        if (!lex::is_epsilon(current())) {
+            throw ParseError("Expected end of file!", current());
+        }
+
+        cout << "parsed program!" << endl;
+        return new ast::Program(name, functions, procedures, main);
+    }
 }

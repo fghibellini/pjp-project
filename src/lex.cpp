@@ -23,6 +23,11 @@ string lexem_to_string(Lexem l)
     return s;
 }
 
+string special_string_val(Lexem l)
+{
+    return l.special_val;
+}
+
 bool is_ident(Lexem l)
 {
     return l.type == Lexem::IDENT;
@@ -198,7 +203,7 @@ Lexem LexemReader::next()
         do  {
             acc = acc + string(1,c);
             c = next_char();
-        } while (isalpha(c));
+        } while (c == '_' || isalpha(c));
         if (isdigit(c)) {
             throw parsing_error("Digit directly follows identifier or keyword!");
         }
