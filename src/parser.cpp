@@ -97,6 +97,12 @@ ast::Expr * Parser::parseFactor()
                 }
             }
             return new ast::CallFactor(ident, args);
+        } else if (is_special(current(), "[")) {
+            cout << "processing indexing!" << endl;
+            consumeSpecial("[");
+            auto index = parseExpr();
+            consumeSpecial("]");
+            return new ast::IndexingFactor(ident, index);
         } else {
             return new ast::IdentExpr(ident);
         }
@@ -163,27 +169,16 @@ ast::Expr * Parser::parseExpr()
 ast::Statement * Parser::parseStatement()
 {
     lex::Lexem s = current();
-    if (is_ident_like(s)) {
-        return parseExpr();
-        string ident = consume_ident();
+    if (is_ident_like(s)) { // TODO move this down
+        auto left = parseExpr();
         if (is_special(current(), ":=")) {
             next();
-            auto expr = parseExpr();
-            return new ast::AssignmentStatement(ident, expr);
-        //}
-        //else if (is_special(current(), "(")) {
-        //    next();
-        //    auto arg = parseExpr();
-        //    consumeSpecial(")");
-        //    return new ast::CallStatement(ident, expr);
-        //} else if (is_special(current(), "[")) {
-        //    next();
-        //    auto index = parseExpr();
-        //    consumeSpecial("]");
-        //    return new ast::ArrayAccess(ident, index);
-        } else {
-            throw ParseError("Invalid symbol after identifier in statement expected one of { [, (, := }!", current());
+            auto right = parseExpr();
+            return new ast::AssignmentStatement(left, right);
         }
+        return left;
+    } else if (is_special(s, "exit")) {
+        // TODO
     } else if (is_special(s, "if")) {
         next();
         auto condition = parseExpr();

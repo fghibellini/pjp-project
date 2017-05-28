@@ -15,5 +15,7 @@ const n = 3, m = 42;
 begin
     writeln(gcdi(27*2, 27*3));
     writeln(gcdr(27*2, 27*3));
+    n := 55;
+    i[23 + 3] := 55;
     writeln(gcdr_guessing(27*2, 27*3))
 end.

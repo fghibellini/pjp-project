@@ -10,6 +10,7 @@ void Scope::accept(Visitor &v) const { v.visit(*this); }
 void FunctionDecl::accept(Visitor &v) const { v.visit(*this); }
 void ProcedureDecl::accept(Visitor &v) const { v.visit(*this); }
 void CallFactor::accept(Visitor &v) const { v.visit(*this); }
+void IndexingFactor::accept(Visitor &v) const { v.visit(*this); }
 void AssignmentStatement::accept(Visitor &v) const { v.visit(*this); }
 void ConstDeclaration::accept(Visitor &v) const { v.visit(*this); }
 void VarDeclaration::accept(Visitor &v) const { v.visit(*this); }
@@ -24,8 +25,9 @@ void Args::accept(Visitor &v) const { v.visit(*this); }
 
 IntExpr::IntExpr(int val) : val(val) {}
 Program::Program(string name, vector<FunctionDecl *> functions, vector<ProcedureDecl *> procedures, Scope *main) : name(name), functions(functions), procedures(procedures), main(main) {}
+IndexingFactor::IndexingFactor(string ident, Expr *index) : ident(ident), index(index) {}
 CallFactor::CallFactor(string fname, vector<Expr *> expr) : fname(fname), expr(expr) {}
-AssignmentStatement::AssignmentStatement(string left, Expr *right) : left(left), right(right) {}
+AssignmentStatement::AssignmentStatement(Expr *left, Expr *right) : left(left), right(right) {}
 Block::Block(vector<Statement *> statements) : statements(statements) {}
 Scope::Scope(vector<Declaration *> declarations, Block *body) : declarations(declarations), body(body) {}
 FunctionDecl::FunctionDecl(string name, Args *args, TypeSignature *ret_type, Scope *scope) : name(name), args(args), ret_type(ret_type), scope(scope) {}
@@ -40,24 +42,5 @@ IdentExpr::IdentExpr(string ident) : ident(ident) {}
 TypeSignature::TypeSignature(bool array, int min_index, int max_index) : array(array), min_index(min_index), max_index(max_index) {}
 Arg::Arg(string name, TypeSignature *type) : name(name), type(type) {}
 Args::Args(vector<Arg *> args) : args(args) {}
-
-void Visitor::visit(const Program &p) { throw domain_error("Visitor doesn't support this AST node type!"); };
-void Visitor::visit(const Scope &p) { throw domain_error("Visitor doesn't support this AST node type!"); };
-void Visitor::visit(const FunctionDecl &p) { throw domain_error("Visitor doesn't support this AST node type!"); };
-void Visitor::visit(const ProcedureDecl &p) { throw domain_error("Visitor doesn't support this AST node type!"); };
-void Visitor::visit(const IntExpr &e) { throw domain_error("Visitor doesn't support this AST node type!"); };
-void Visitor::visit(const CallFactor &s) { throw domain_error("Visitor doesn't support this AST node type!"); };
-void Visitor::visit(const Block &s) { throw domain_error("Visitor doesn't support this AST node type!"); };
-void Visitor::visit(const AssignmentStatement &s) { throw domain_error("Visitor doesn't support this AST node type!"); };
-void Visitor::visit(const ConstDeclaration &s) { throw domain_error("Visitor doesn't support this AST node type!"); };
-void Visitor::visit(const VarDeclaration &s) { throw domain_error("Visitor doesn't support this AST node type!"); };
-void Visitor::visit(const IfStatement &s) { throw domain_error("Visitor doesn't support this AST node type!"); };
-void Visitor::visit(const WhileStatement &s) { throw domain_error("Visitor doesn't support this AST node type!"); };
-void Visitor::visit(const EmptyStatement &s) { throw domain_error("Visitor doesn't support this AST node type!"); };
-void Visitor::visit(const BinaryOpExpression &s) { throw domain_error("Visitor doesn't support this AST node type!"); };
-void Visitor::visit(const UnaryMinusExpression &s) { throw domain_error("Visitor doesn't support this AST node type!"); };
-void Visitor::visit(const IdentExpr &s) { throw domain_error("Visitor doesn't support this AST node type!"); };
-void Visitor::visit(const TypeSignature &s) { throw domain_error("Visitor doesn't support this AST node type!"); };
-void Visitor::visit(const Args &s) { throw domain_error("Visitor doesn't support this AST node type!"); };
 
 }

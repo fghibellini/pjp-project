@@ -25,6 +25,14 @@ void PrintVisitor::visit(const ast::Args &as) {
     }
     os << ")";
 };
+void PrintVisitor::visit(const ast::AssignmentStatement &as) {
+    as.left->accept(*this);
+    os << " := ";
+    as.right->accept(*this);
+};
+void PrintVisitor::visit(const ast::IdentExpr &ie) {
+    os << ie.ident;
+};
 void PrintVisitor::visit(const ast::FunctionDecl &fd) {
     os << "function " << fd.name;
     fd.args->accept(*this);
@@ -47,6 +55,12 @@ void PrintVisitor::visit(const ast::Scope &p) {
     p.body->accept(*this);
 };
 void PrintVisitor::visit(const ast::IntExpr &e) { os << to_string(e.val); };
+void PrintVisitor::visit(const ast::IndexingFactor &ifac)
+{
+    os << ifac.ident << "[";
+    ifac.index->accept(*this);
+    os << "]";
+}
 void PrintVisitor::visit(const ast::CallFactor &s) {
     os << s.fname << "(";
     for (auto e : s.expr)

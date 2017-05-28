@@ -88,10 +88,10 @@ public:
 
 struct AssignmentStatement : public Statement
 {
-    string left;
+    Expr *left;
     Expr *right;
 public:
-    AssignmentStatement(string left, Expr * right);
+    AssignmentStatement(Expr *left, Expr * right);
     virtual void accept(Visitor &v) const;
 };
 
@@ -101,6 +101,15 @@ struct CallFactor : public Expr
     vector<Expr *> expr;
 public:
     CallFactor(string fname, vector<Expr *> expr);
+    virtual void accept(Visitor &v) const;
+};
+
+struct IndexingFactor : public Expr
+{
+    string ident;
+    Expr *index;
+public:
+    IndexingFactor(string ident, Expr *index);
     virtual void accept(Visitor &v) const;
 };
 
@@ -198,24 +207,25 @@ public:
 };
 
 struct Visitor {
-    virtual void visit(const Program &p);
-    virtual void visit(const IntExpr &e);
-    virtual void visit(const CallFactor &s);
-    virtual void visit(const FunctionDecl &s);
-    virtual void visit(const ProcedureDecl &s);
-    virtual void visit(const Scope &s);
-    virtual void visit(const Block &s);
-    virtual void visit(const AssignmentStatement &s);
-    virtual void visit(const ConstDeclaration &s);
-    virtual void visit(const VarDeclaration &s);
-    virtual void visit(const IfStatement &s);
-    virtual void visit(const WhileStatement &s);
-    virtual void visit(const EmptyStatement &s);
-    virtual void visit(const BinaryOpExpression &s);
-    virtual void visit(const UnaryMinusExpression &e);
-    virtual void visit(const IdentExpr &s);
-    virtual void visit(const TypeSignature &s);
-    virtual void visit(const Args &s);
+    virtual void visit(const Program &p) = 0;
+    virtual void visit(const IntExpr &e) = 0;
+    virtual void visit(const IndexingFactor &e) = 0;
+    virtual void visit(const CallFactor &s) = 0;
+    virtual void visit(const FunctionDecl &s) = 0;
+    virtual void visit(const ProcedureDecl &s) = 0;
+    virtual void visit(const Scope &s) = 0;
+    virtual void visit(const Block &s) = 0;
+    virtual void visit(const AssignmentStatement &s) = 0;
+    virtual void visit(const ConstDeclaration &s) = 0;
+    virtual void visit(const VarDeclaration &s) = 0;
+    virtual void visit(const IfStatement &s) = 0;
+    virtual void visit(const WhileStatement &s) = 0;
+    virtual void visit(const EmptyStatement &s) = 0;
+    virtual void visit(const BinaryOpExpression &s) = 0;
+    virtual void visit(const UnaryMinusExpression &e) = 0;
+    virtual void visit(const IdentExpr &s) = 0;
+    virtual void visit(const TypeSignature &s) = 0;
+    virtual void visit(const Args &s) = 0;
 };
 
 }

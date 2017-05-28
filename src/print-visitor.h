@@ -17,9 +17,12 @@ public:
     virtual void visit(const ast::Scope &s);
     virtual void visit(const ast::IntExpr &e);
     virtual void visit(const ast::CallFactor &s);
+    virtual void visit(const ast::IndexingFactor &s);
     virtual void visit(const ast::Block &s);
+    virtual void visit(const ast::IdentExpr &s);
     virtual void visit(const ast::ConstDeclaration &s);
     virtual void visit(const ast::VarDeclaration &s);
+    virtual void visit(const ast::AssignmentStatement &s);
     virtual void visit(const ast::IfStatement &s);
     virtual void visit(const ast::TypeSignature &s);
     virtual void visit(const ast::WhileStatement &s);
