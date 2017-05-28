@@ -22,6 +22,7 @@ void UnaryMinusExpression::accept(Visitor &v) const { v.visit(*this); }
 void IdentExpr::accept(Visitor &v) const { v.visit(*this); }
 void TypeSignature::accept(Visitor &v) const { v.visit(*this); }
 void Args::accept(Visitor &v) const { v.visit(*this); }
+void ForStatement::accept(Visitor &v) const { v.visit(*this); }
 
 IntExpr::IntExpr(int val) : val(val) {}
 Program::Program(string name, vector<FunctionDecl *> functions, vector<ProcedureDecl *> procedures, Scope *main) : name(name), functions(functions), procedures(procedures), main(main) {}
@@ -42,5 +43,6 @@ IdentExpr::IdentExpr(string ident) : ident(ident) {}
 TypeSignature::TypeSignature(bool array, int min_index, int max_index) : array(array), min_index(min_index), max_index(max_index) {}
 Arg::Arg(string name, TypeSignature *type) : name(name), type(type) {}
 Args::Args(vector<Arg *> args) : args(args) {}
+ForStatement::ForStatement(string iterator, Expr *val0, bool downto, Expr *val1, Statement *body) : iterator(iterator), val0(val0), downto(downto), val1(val1), body(body) {}
 
 }

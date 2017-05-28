@@ -50,7 +50,6 @@ int main(int argc, const char *argv[])
     }
 
     if (!lex) {
-        cout << "Running as parser" << endl;
         lex::LexemReader lreader(cin);
         Parser parser(lreader);
 
@@ -58,7 +57,6 @@ int main(int argc, const char *argv[])
         PrintVisitor coutAstPrinter(cout);
         res->accept(coutAstPrinter);
     } else {
-        cout << "Running as lexer" << endl;
         lex::LexemReader lreader(cin);
 
         lreader.read_all();

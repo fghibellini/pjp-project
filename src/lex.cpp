@@ -186,12 +186,16 @@ Lexem LexemReader::next()
     int start_col = _cur_col;
     if (c == LexemReader::EOP) {
         return lexem_epsilon(start_line, start_col);
-    } else if (isdigit(c)) {
+    } else if (isdigit(c) || c == '$' || c == '&') {
         int char_count = 0;
+        int base = (c == '$') ? 16 : (c == '&') ? 8 : 10;
+        if (!isdigit(c)) {
+            c = next_char();
+        }
         int acc = 0;
         do  {
             char_count += 1;
-            acc = acc * 10 + intval_of_char(c);
+            acc = acc * base + intval_of_char(c);
             c = next_char();
         } while (isdigit(c));
         if (isalpha(c)) {
@@ -227,11 +231,13 @@ Lexem LexemReader::next()
             return lexem_special(start_line, start_col, ":");
         }
     } else if (c == '<' || c == '>') {
-        if (next_char() == '=') {
+        string op(1, c);
+        string op2 = op + string(1, next_char());
+        if (op2 == "<>" || op2 == "<=" || op2 == ">=") {
             next_char();
-            return lexem_special(start_line, start_col, string(1, c) + "=");
+            return lexem_special(start_line, start_col, op2);
         } else {
-            return lexem_special(start_line, start_col, string(1, c));
+            return lexem_special(start_line, start_col, op);
         }
     } else {
         throw parsing_error("Expected start of lexem!");

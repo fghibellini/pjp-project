@@ -86,6 +86,18 @@ public:
     virtual void accept(Visitor &v) const;
 };
 
+struct ForStatement : public Statement
+{
+    string iterator;
+    bool downto;
+    Expr *val0;
+    Expr *val1;
+    Statement *body;
+public:
+    ForStatement(string iterator, Expr *val0, bool downto, Expr *val1, Statement *body);
+    virtual void accept(Visitor &v) const;
+};
+
 struct AssignmentStatement : public Statement
 {
     Expr *left;
@@ -226,6 +238,7 @@ struct Visitor {
     virtual void visit(const IdentExpr &s) = 0;
     virtual void visit(const TypeSignature &s) = 0;
     virtual void visit(const Args &s) = 0;
+    virtual void visit(const ForStatement &s) = 0;
 };
 
 }

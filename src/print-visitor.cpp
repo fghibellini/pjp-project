@@ -108,6 +108,15 @@ void PrintVisitor::visit(const ast::IfStatement &s) {
     }
     os << ";";
 };
+void PrintVisitor::visit(const ast::ForStatement &s) {
+    os << "for " << s.iterator << " := ";
+    s.val0->accept(*this);
+    os << (s.downto ? " downto " : " to ");
+    s.val1->accept(*this);
+    os << " do ";
+    s.body->accept(*this);
+    os << ";";
+};
 void PrintVisitor::visit(const ast::WhileStatement &s) {
     os << "while ";
     s.condition->accept(*this);

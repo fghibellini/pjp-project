@@ -26,6 +26,7 @@ public:
     virtual void visit(const ast::IfStatement &s);
     virtual void visit(const ast::TypeSignature &s);
     virtual void visit(const ast::WhileStatement &s);
+    virtual void visit(const ast::ForStatement &s);
     virtual void visit(const ast::EmptyStatement &s);
     virtual void visit(const ast::UnaryMinusExpression &s);
     virtual void visit(const ast::BinaryOpExpression &s);

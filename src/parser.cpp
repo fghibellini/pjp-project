@@ -84,7 +84,6 @@ ast::Expr * Parser::parseFactor()
             next();
         }
         if (is_special(current(), "(")) {
-            cout << "processing call!" << endl;
             consumeSpecial("(");
             vector<ast::Expr *> args;
             while (true) {
@@ -98,7 +97,6 @@ ast::Expr * Parser::parseFactor()
             }
             return new ast::CallFactor(ident, args);
         } else if (is_special(current(), "[")) {
-            cout << "processing indexing!" << endl;
             consumeSpecial("[");
             auto index = parseExpr();
             consumeSpecial("]");
@@ -124,14 +122,14 @@ ast::Expr * Parser::parseTerm()
     auto left = parseFactor();
     while (true)
     {
-        if (is_special(current(), "*")) {
+        if (is_special(current(), "*")
+         || is_special(current(), "/")
+         || is_special(current(), "mod")
+         || is_special(current(), "div")) {
+            string op = special_string_val(current());
             next();
             auto right = parseFactor();
-            left = new ast::BinaryOpExpression("*", left, right);
-        } else if (is_special(current(), "/")) {
-            next();
-            auto right = parseFactor();
-            left = new ast::BinaryOpExpression("/", left, right);
+            left = new ast::BinaryOpExpression(op, left, right);
         } else {
             break;
         }
@@ -150,18 +148,20 @@ ast::Expr * Parser::parseExpr()
         t0 = parseTerm();
     }
     auto left = t0;
-    while (true) {
-        if (is_special(current(), "-")) {
-            consumeSpecial("-");
-            auto right = parseTerm();
-            left = new ast::BinaryOpExpression("-", left, right);
-        } else if (is_special(current(), "+")) {
-            consumeSpecial("+");
-            auto right = parseTerm();
-            left = new ast::BinaryOpExpression("+", left, right);
-        } else {
-            break;
-        }
+    while (is_special(current(), "-")
+        || is_special(current(), "+")
+        || is_special(current(), "and")
+        || is_special(current(), "or")
+        || is_special(current(), "<")
+        || is_special(current(), ">")
+        || is_special(current(), ">=")
+        || is_special(current(), "<=")
+        || is_special(current(), "=")
+        || is_special(current(), "<>")) {
+        string op = special_string_val(current());
+        next();
+        auto right = parseTerm();
+        left = new ast::BinaryOpExpression(op, left, right);
     }
     return left;
 }
@@ -169,16 +169,24 @@ ast::Expr * Parser::parseExpr()
 ast::Statement * Parser::parseStatement()
 {
     lex::Lexem s = current();
-    if (is_ident_like(s)) { // TODO move this down
-        auto left = parseExpr();
-        if (is_special(current(), ":=")) {
-            next();
-            auto right = parseExpr();
-            return new ast::AssignmentStatement(left, right);
+    if (is_special(s, "exit")) {
+        next();
+        return new ast::CallFactor("exit", vector<ast::Expr *>());
+    } else if (is_special(s, "for")) {
+        next();
+        string iterator = consume_ident();
+        consumeSpecial(":=");
+        auto val0 = parseExpr();
+        bool downto = is_special(current(), "downto");
+        if (downto) {
+            consumeSpecial("downto");
+        } else {
+            consumeSpecial("to");
         }
-        return left;
-    } else if (is_special(s, "exit")) {
-        // TODO
+        auto val1 = parseExpr();
+        consumeSpecial("do");
+        auto body = parseStatement();
+        return new ast::ForStatement(iterator, val0, downto, val1, body);
     } else if (is_special(s, "if")) {
         next();
         auto condition = parseExpr();
@@ -198,8 +206,16 @@ ast::Statement * Parser::parseStatement()
         return new ast::WhileStatement(condition, body);
     } else if (is_special(s, "begin")) {
         return parseBlock();
-    } else {
+    } else if (is_ident_like(s)) { // TODO identify callable identifiers
+        auto left = parseExpr();
+        if (is_special(current(), ":=")) {
+            next();
+            auto right = parseExpr();
+            return new ast::AssignmentStatement(left, right);
+        }
+        return left;
         throw ParseError("Invalid start of statement!", s);
+    } else {
         //return new ast::EmptyStatement();
     }
 }
@@ -208,15 +224,11 @@ ast::Block * Parser::parseBlock()
 {
     consumeSpecial("begin");
     vector<ast::Statement *> statements;
-    while (true) {
+    while (!is_special(current(), "end")) {
         statements.push_back(parseStatement());
-        if (is_special(current(), ";")) {
-            consumeSpecial(";");
-        } else {
-            consumeSpecial("end");
-            break;
-        }
+        consumeSpecial(";");
     }
+    consumeSpecial("end");
     return new ast::Block(statements);
 }
 
@@ -259,42 +271,44 @@ ast::Scope * Parser::parseScope()
         lex::Lexem s = current();
         if (lex::is_special(s, "const")) {
             next();
-            map<string,int> bindings;
-            string name0 = consume_ident();
-            consumeSpecial("=");
-            int val0 = consume_int_literal();
-            bindings.emplace(name0,val0);
-            while (is_special(current(), ","))
-            {
-                next();
-                string name = consume_ident();
+            do {
+                map<string,int> bindings;
+                string name0 = consume_ident();
                 consumeSpecial("=");
-                int val = consume_int_literal();
-                bindings.emplace(name,val);
-            }
-            consumeSpecial(";");
-            declarations.push_back(new ast::ConstDeclaration(bindings));
+                int val0 = consume_int_literal();
+                bindings.emplace(name0,val0);
+                while (is_special(current(), ","))
+                {
+                    next();
+                    string name = consume_ident();
+                    consumeSpecial("=");
+                    int val = consume_int_literal();
+                    bindings.emplace(name,val);
+                }
+                consumeSpecial(";");
+                declarations.push_back(new ast::ConstDeclaration(bindings));
+            } while (is_ident(current()));
         } else if (lex::is_special(s, "var")) {
             next();
-            vector<string> varnames;
-            varnames.push_back(consume_ident());
-            while (is_special(current(), ","))
-            {
-                next();
+            do {
+                vector<string> varnames;
                 varnames.push_back(consume_ident());
-            }
-            consumeSpecial(":");
-            auto type = parseTypeSignature();
-            consumeSpecial(";");
-            declarations.push_back(new ast::VarDeclaration(varnames, type));
+                while (is_special(current(), ","))
+                {
+                    next();
+                    varnames.push_back(consume_ident());
+                }
+                consumeSpecial(":");
+                auto type = parseTypeSignature();
+                consumeSpecial(";");
+                declarations.push_back(new ast::VarDeclaration(varnames, type));
+            } while (is_ident(current()));
         } else {
             break;
         }
     }
 
     auto body = parseBlock();
-
-    cout << "parsed block!" << endl;
 
     return new ast::Scope(declarations, body);
 }
@@ -346,15 +360,12 @@ ast::Program *Parser::parse()
     _lexem_reader.init();
     next();
 
-    cout << "lexer initialized!" << endl;
-
     consumeSpecial("program");
     string name = consume_ident();
     consumeSpecial(";");
 
     lex::Lexem s = current();
 
-    cout << "gonna parse function decls" << endl;
     vector<ast::FunctionDecl *> functions;
     vector<ast::ProcedureDecl *> procedures;
     while (true)
@@ -377,6 +388,5 @@ ast::Program *Parser::parse()
         throw ParseError("Expected end of file!", current());
     }
 
-    cout << "parsed program!" << endl;
     return new ast::Program(name, functions, procedures, main);
 }
