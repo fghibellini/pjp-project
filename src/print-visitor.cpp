@@ -4,9 +4,42 @@
 PrintVisitor::PrintVisitor(ostream &os) : os(os) {};
 
 void PrintVisitor::visit(const ast::Program &p) {
-    os << "program " << p.name << ";";
-    // TODO functions and procedures
+    os << "program " << p.name << ";" << endl << endl;
+    for (auto f : p.functions)
+    {
+        f->accept(*this);
+    }
+    for (auto p : p.procedures)
+    {
+        p->accept(*this);
+    }
     p.main->accept(*this);
+};
+void PrintVisitor::visit(const ast::Args &as) {
+    os << "(";
+    for (auto d : as.args)
+    {
+        os << d->name << " : ";
+        d->type->accept(*this);
+        os << "; ";
+    }
+    os << ")";
+};
+void PrintVisitor::visit(const ast::FunctionDecl &fd) {
+    os << "function " << fd.name;
+    fd.args->accept(*this);
+    os << " : ";
+    fd.ret_type->accept(*this);
+    os << ";" << endl;
+    fd.scope->accept(*this);
+    os << ";" << endl << endl;
+};
+void PrintVisitor::visit(const ast::ProcedureDecl &fd) {
+    os << "procedure " << fd.name;
+    fd.args->accept(*this);
+    os << ";" << endl;
+    fd.scope->accept(*this);
+    os << ";" << endl << endl;
 };
 void PrintVisitor::visit(const ast::Scope &p) {
     for (auto &d : p.declarations)
@@ -33,8 +66,23 @@ void PrintVisitor::visit(const ast::Block &s) {
     }
     os << "end";
 };
+void PrintVisitor::visit(const ast::TypeSignature &s)
+{
+    if (s.array) {
+        os << "array [";
+        os << s.min_index << " .. " << s.max_index;
+        os << "] of ";
+    }
+    os << "integer";
+};
 void PrintVisitor::visit(const ast::ConstDeclaration &s) { os << "const "; for (auto &d : s.decls) os << d.first << "=" << to_string(d.second) << ","; os << ";"; };
-void PrintVisitor::visit(const ast::VarDeclaration &s) { os << "var "; for (auto &d : s.varnames) os << d << ","; os << ";"; };
+void PrintVisitor::visit(const ast::VarDeclaration &s)
+{
+    os << "var ";
+    for (auto &d : s.varnames) os << d << ",";
+    os << " : "; s.type->accept(*this);
+    os <<  ";" << endl;
+};
 void PrintVisitor::visit(const ast::IfStatement &s) {
     os << "if ";
     s.condition->accept(*this);

@@ -225,6 +225,37 @@ ast::Block * Parser::parseBlock()
     return new ast::Block(statements);
 }
 
+ast::TypeSignature *Parser::parseTypeSignature()
+{
+    int array = false;
+    int i1 = 0;
+    int i2 = 0;
+    if (is_special(current(), "array")) {
+        array = true;
+        consumeSpecial("array");
+        consumeSpecial("[");
+        bool neg1 = false;
+        if (is_special(current(), "-")) {
+            neg1 = true;
+            next();
+        }
+        int n1 = consume_int_literal();
+        consumeSpecial("..");
+        bool neg2 = false;
+        if (is_special(current(), "-")) {
+            neg2 = true;
+            next();
+        }
+        int n2 = consume_int_literal();
+        consumeSpecial("]");
+        consumeSpecial("of");
+        i1 = neg1 ? -n1 : n1;
+        i2 = neg2 ? -n2 : n2;
+    }
+    consumeSpecial("integer");
+    return new ast::TypeSignature(array, i1, i2);
+}
+
 ast::Scope * Parser::parseScope()
 {
     vector<ast::Declaration *> declarations;
@@ -257,8 +288,10 @@ ast::Scope * Parser::parseScope()
                 next();
                 varnames.push_back(consume_ident());
             }
+            consumeSpecial(":");
+            auto type = parseTypeSignature();
             consumeSpecial(";");
-            declarations.push_back(new ast::VarDeclaration(varnames));
+            declarations.push_back(new ast::VarDeclaration(varnames, type));
         } else {
             break;
         }
@@ -269,6 +302,48 @@ ast::Scope * Parser::parseScope()
     cout << "parsed block!" << endl;
 
     return new ast::Scope(declarations, body);
+}
+
+ast::Args *Parser::parseArgs()
+{
+    vector<ast::Arg *> args;
+    consumeSpecial("(");
+    while (!is_special(current(), ")"))
+    {
+        string name = consume_ident();
+        consumeSpecial(":");
+        auto type = parseTypeSignature();
+        args.push_back(new ast::Arg(name, type));
+        if (is_special(current(), ";")) {
+            consumeSpecial(";");
+        } else {
+            break;
+        }
+    }
+    consumeSpecial(")");
+    return new ast::Args(args);
+}
+
+ast::FunctionDecl *Parser::parseFunctionDecl()
+{
+    consumeSpecial("function");
+    string name = consume_ident();
+    auto args = parseArgs();
+    consumeSpecial(":");
+    auto ret_type = parseTypeSignature();
+    consumeSpecial(";");
+    auto scope = parseScope();
+    return new ast::FunctionDecl(name, args, ret_type, scope);
+}
+
+ast::ProcedureDecl *Parser::parseProcedureDecl()
+{
+    consumeSpecial("procedure");
+    string name = consume_ident();
+    auto args = parseArgs();
+    consumeSpecial(";");
+    auto scope = parseScope();
+    return new ast::ProcedureDecl(name, args, scope);
 }
 
 ast::Program *Parser::parse()
@@ -287,27 +362,26 @@ ast::Program *Parser::parse()
     cout << "gonna parse function decls" << endl;
     vector<ast::FunctionDecl *> functions;
     vector<ast::ProcedureDecl *> procedures;
-    while (false)
+    while (true)
     {
         if (lex::is_special(s, "function")) {
-            // TODO
+            functions.push_back(parseFunctionDecl());
         } else if (lex::is_special(s, "procedure")) {
-            // TODO
+            procedures.push_back(parseProcedureDecl());
+        } else {
+            break;
         }
+        consumeSpecial(";");
         s = current();
     }
 
-    if (!(lex::is_special(s, "begin") || lex::is_special(s, "var") || lex::is_special(s, "const"))) {
-        throw ParseError("Expected function, procedure or scope.", s);
-    } else {
-        cout << "gonna parse scope of program: " << name << endl;
-        ast::Scope * main = parseScope();
+    ast::Scope * main = parseScope();
 
-        if (!lex::is_epsilon(current())) {
-            throw ParseError("Expected end of file!", current());
-        }
-
-        cout << "parsed program!" << endl;
-        return new ast::Program(name, functions, procedures, main);
+    consumeSpecial(".");
+    if (!lex::is_epsilon(current())) {
+        throw ParseError("Expected end of file!", current());
     }
+
+    cout << "parsed program!" << endl;
+    return new ast::Program(name, functions, procedures, main);
 }

@@ -108,6 +108,15 @@ struct Declaration : public Node
 {
 };
 
+struct TypeSignature {
+    bool array;
+    int min_index;
+    int max_index;
+public:
+    TypeSignature(bool array, int min_index, int max_index);
+    virtual void accept(Visitor &v) const;
+};
+
 struct ConstDeclaration : public Declaration
 {
     map<string,int> decls;
@@ -119,8 +128,9 @@ public:
 struct VarDeclaration : public Declaration
 {
     vector<string> varnames;
+    TypeSignature *type;
 public:
-    VarDeclaration(vector<string> varnames);
+    VarDeclaration(vector<string> varnames, TypeSignature *type);
     virtual void accept(Visitor &v) const;
 };
 
@@ -141,21 +151,38 @@ public:
     virtual void accept(Visitor &v) const;
 };
 
+struct Arg {
+    string name;
+    TypeSignature *type;
+public:
+    Arg(string name, TypeSignature *type);
+};
+
+struct Args : public Node {
+    vector<Arg *> args;
+public:
+    Args(vector<Arg *> args);
+    virtual void accept(Visitor &v) const;
+};
+
 struct FunctionDecl : public Node
 {
-    vector<Declaration *> declarations;    
-    Block *body;
+    string name;
+    Args *args;    
+    TypeSignature *ret_type;
+    Scope *scope;
 public:
-    FunctionDecl(vector<Declaration *> declarations, Block *body);
+    FunctionDecl(string name, Args *args, TypeSignature *ret_type, Scope *scope);
     virtual void accept(Visitor &v) const;
 };
 
 struct ProcedureDecl : public Node
 {
-    vector<Declaration *> declarations;    
-    Block *body;
+    string name;
+    Args *args;    
+    Scope *scope;
 public:
-    ProcedureDecl(vector<Declaration *> declarations, Block *body);
+    ProcedureDecl(string name, Args *args, Scope *scope);
     virtual void accept(Visitor &v) const;
 };
 
@@ -187,6 +214,8 @@ struct Visitor {
     virtual void visit(const BinaryOpExpression &s);
     virtual void visit(const UnaryMinusExpression &e);
     virtual void visit(const IdentExpr &s);
+    virtual void visit(const TypeSignature &s);
+    virtual void visit(const Args &s);
 };
 
 }

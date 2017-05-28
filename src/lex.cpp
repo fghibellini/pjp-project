@@ -203,24 +203,29 @@ Lexem LexemReader::next()
         do  {
             acc = acc + string(1,c);
             c = next_char();
-        } while (c == '_' || isalpha(c));
-        if (isdigit(c)) {
-            throw parsing_error("Digit directly follows identifier or keyword!");
-        }
+        } while (c == '_' || isalpha(c) || isdigit(c));
         if (is_keyword(acc)) {
             return lexem_special(start_line, start_col, acc);
         } else {
             return lexem_ident(start_line, start_col, acc);
         }
-    } else if (c == '=' || c == '+' || c == '-' || c == '*' || c == ',' || c == ';' || c == '(' || c == ')') {
+    } else if (c == '=' || c == '+' || c == '-' || c == '*' || c == ',' || c == ';' || c == '(' || c == ')' || c == '[' || c == ']') {
         next_char();
         return lexem_special(start_line, start_col, string(1,c));
-    } else if (c == ':') {
-        if (next_char() != '=') {
-            throw parsing_error("Expected '='!");
+    } else if (c == '.') {
+        if (next_char() == '.') {
+            next_char();
+            return lexem_special(start_line, start_col, "..");
+        } else {
+            return lexem_special(start_line, start_col, ".");
         }
-        next_char();
-        return lexem_special(start_line, start_col, ":=");
+    } else if (c == ':') {
+        if (next_char() == '=') {
+            next_char();
+            return lexem_special(start_line, start_col, ":=");
+        } else {
+            return lexem_special(start_line, start_col, ":");
+        }
     } else if (c == '<' || c == '>') {
         if (next_char() == '=') {
             next_char();

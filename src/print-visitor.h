@@ -11,6 +11,9 @@ private:
 public:
     PrintVisitor(ostream &os);
     virtual void visit(const ast::Program &p);
+    virtual void visit(const ast::Args &p);
+    virtual void visit(const ast::FunctionDecl &p);
+    virtual void visit(const ast::ProcedureDecl &p);
     virtual void visit(const ast::Scope &s);
     virtual void visit(const ast::IntExpr &e);
     virtual void visit(const ast::CallFactor &s);
@@ -18,6 +21,7 @@ public:
     virtual void visit(const ast::ConstDeclaration &s);
     virtual void visit(const ast::VarDeclaration &s);
     virtual void visit(const ast::IfStatement &s);
+    virtual void visit(const ast::TypeSignature &s);
     virtual void visit(const ast::WhileStatement &s);
     virtual void visit(const ast::EmptyStatement &s);
     virtual void visit(const ast::UnaryMinusExpression &s);

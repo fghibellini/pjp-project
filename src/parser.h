@@ -35,8 +35,12 @@ private:
     ast::Expr *parseFactor();
     ast::Expr *parseTerm();
     ast::Expr *parseExpr();
+    ast::TypeSignature *parseTypeSignature();
     ast::Statement *parseStatement();
     ast::Scope *parseScope();
+    ast::Args *parseArgs();
+    ast::FunctionDecl *parseFunctionDecl();
+    ast::ProcedureDecl *parseProcedureDecl();
 
 public:
     // constructor
