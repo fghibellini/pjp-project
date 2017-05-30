@@ -71,10 +71,14 @@ int main(int argc, const char *argv[])
 
         lreader.read_all();
     } else {
+        /*j
         lex::LexemReader lreader(cin);
         Parser parser(lreader);
 
         auto res = parser.parse();
+        */
+
+        auto res = new ast::IntExpr(42);
 
         CompilerVisitor compilerVisitor;
         res->accept(compilerVisitor);

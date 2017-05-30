@@ -10,6 +10,21 @@ CompilerVisitor::CompilerVisitor()
 
 void CompilerVisitor::generate()
 {
+    //create main method
+    auto intType = llvm::IntegerType::get(*ctx, sizeof(int) * 8);
+    auto mainType = FunctionType::get(intType, vector<llvm::Type *>(), false);
+    auto main = Function::Create(mainType, Function::ExternalLinkage, "main", module);
+
+    //body of main
+    auto mainBlock = BasicBlock::Create(*ctx, "entry", main);
+    builder->SetInsertPoint(mainBlock);
+
+    //return 0
+    auto zero = llvm::ConstantInt::get(intType, 0);
+    builder->CreateRet(zero);
+
+    verifyFunction(*main);
+
     module->print(errs(), nullptr);
 };
 
