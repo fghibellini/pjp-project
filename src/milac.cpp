@@ -5,6 +5,7 @@
 #include "lex.h"
 #include "parser.h"
 #include "print-visitor.h"
+#include "compiler-visitor.h"
 
 using namespace std;
 
@@ -18,6 +19,7 @@ void print_help()
 int main(int argc, const char *argv[])
 {
     bool lex = false;
+    bool ast = false;
     string filename = "";
 
     try {
@@ -26,6 +28,8 @@ int main(int argc, const char *argv[])
             string arg_val = string(argv[i]);
             if (arg_val == "--lex") {
                 lex = true;
+            } else if (arg_val == "--ast") {
+                ast = true;
             } else if (arg_val == "-h" || arg_val == "--help") {
                 print_help();
                 return 0;
@@ -49,17 +53,32 @@ int main(int argc, const char *argv[])
         return 2;
     }
 
-    if (!lex) {
+    if (ast && lex) {
+        cerr << "You cannot specify both --lex and --ast" << endl;
+        return 1;
+    }
+
+    if (ast) {
         lex::LexemReader lreader(cin);
         Parser parser(lreader);
 
         auto res = parser.parse();
+
         PrintVisitor coutAstPrinter(cout);
         res->accept(coutAstPrinter);
-    } else {
+    } else if (lex) {
         lex::LexemReader lreader(cin);
 
         lreader.read_all();
+    } else {
+        lex::LexemReader lreader(cin);
+        Parser parser(lreader);
+
+        auto res = parser.parse();
+
+        CompilerVisitor compilerVisitor;
+        res->accept(compilerVisitor);
+        compilerVisitor.generate();
     }
 
     return 0;

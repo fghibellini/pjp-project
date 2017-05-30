@@ -8,6 +8,11 @@ CompilerVisitor::CompilerVisitor()
     module = new Module("my cool jit", *ctx);
 };
 
+void CompilerVisitor::generate()
+{
+    module->print(errs(), nullptr);
+};
+
 void CompilerVisitor::visit(const ast::Program &p) {
 };
 void CompilerVisitor::visit(const ast::Args &as) {
@@ -46,7 +51,7 @@ void CompilerVisitor::visit(const ast::Scope &p) {
 };
 void CompilerVisitor::visit(const ast::IntExpr &e)
 {
-    //val = ConstantFP::get(ctx, APFloat(e.val));
+    val = ConstantInt::get(*ctx, APInt(sizeof(e.val) * 8, e.val));
 };
 void CompilerVisitor::visit(const ast::IndexingFactor &ifac)
 {
