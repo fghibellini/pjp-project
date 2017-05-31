@@ -216,7 +216,7 @@ ast::Statement * Parser::parseStatement()
         return left;
         throw ParseError("Invalid start of statement!", s);
     } else {
-        //return new ast::EmptyStatement();
+        return new ast::EmptyStatement();
     }
 }
 

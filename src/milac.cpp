@@ -20,6 +20,7 @@ int main(int argc, const char *argv[])
 {
     bool lex = false;
     bool ast = false;
+    bool ir = false;
     string filename = "";
 
     try {
@@ -30,6 +31,8 @@ int main(int argc, const char *argv[])
                 lex = true;
             } else if (arg_val == "--ast") {
                 ast = true;
+            } else if (arg_val == "--ir") {
+                ir = true;
             } else if (arg_val == "-h" || arg_val == "--help") {
                 print_help();
                 return 0;
@@ -53,8 +56,8 @@ int main(int argc, const char *argv[])
         return 2;
     }
 
-    if (ast && lex) {
-        cerr << "You cannot specify both --lex and --ast" << endl;
+    if (((ast ? 1 : 0) + (lex ? 1 : 0) + (ir ? 1 : 0)) > 1) {
+        cerr << "You cannot specify more than one of --lex, --ast, --ir" << endl;
         return 1;
     }
 
@@ -70,19 +73,55 @@ int main(int argc, const char *argv[])
         lex::LexemReader lreader(cin);
 
         lreader.read_all();
-    } else {
-        /*j
+    } else if (ir) {
+        /*
         lex::LexemReader lreader(cin);
         Parser parser(lreader);
 
         auto res = parser.parse();
         */
 
-        auto res = new ast::IntExpr(42);
+        auto res = new ast::Program(
+            "prog1",
+            vector<ast::FunctionDecl *>(),
+            vector<ast::ProcedureDecl *>(),
+            new ast::Scope(
+                vector<ast::Declaration *>(),
+                new ast::Block(
+                    vector<ast::Statement *>(1, new ast::IntExpr(42))
+                )
+            )
+        );
 
         CompilerVisitor compilerVisitor;
         res->accept(compilerVisitor);
         compilerVisitor.generate();
+    } else {
+        /*
+        lex::LexemReader lreader(cin);
+        Parser parser(lreader);
+
+        auto res = parser.parse();
+        */
+
+        auto res = new ast::Program(
+            "prog1",
+            vector<ast::FunctionDecl *>(),
+            vector<ast::ProcedureDecl *>(),
+            new ast::Scope(
+                vector<ast::Declaration *>(),
+                new ast::Block(
+                    vector<ast::Statement *>(1, new ast::IntExpr(42))
+                )
+            )
+        );
+
+        CompilerVisitor compilerVisitor;
+        res->accept(compilerVisitor);
+        compilerVisitor.generateObject("out.obj");
+
+
+		
     }
 
     return 0;

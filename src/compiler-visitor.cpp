@@ -28,6 +28,78 @@ void CompilerVisitor::generate()
     module->print(errs(), nullptr);
 };
 
+void CompilerVisitor::generateObject(string outputPath)
+{
+    //create main method
+    auto intType = llvm::IntegerType::get(*ctx, sizeof(int) * 8);
+    auto mainType = FunctionType::get(intType, vector<llvm::Type *>(), false);
+    auto main = Function::Create(mainType, Function::ExternalLinkage, "main", module);
+
+    //body of main
+    auto mainBlock = BasicBlock::Create(*ctx, "entry", main);
+    builder->SetInsertPoint(mainBlock);
+
+    //return 0
+    auto zero = llvm::ConstantInt::get(intType, 0);
+    builder->CreateRet(zero);
+
+    verifyFunction(*main);
+
+	// Initialize the target registry etc.
+    InitializeAllTargetInfos();
+    InitializeAllTargets();
+    InitializeAllTargetMCs();
+    InitializeAllAsmParsers();
+    InitializeAllAsmPrinters();
+
+    auto TargetTriple = "x86_64-unknown-linux-gnu"; //getDefaultTargetTriple(); can't get this function to link for some weird reason
+    module->setTargetTriple(TargetTriple);
+
+    std::string Error;
+    auto Target = TargetRegistry::lookupTarget(TargetTriple, Error);
+
+    // Print an error and exit if we couldn't find the requested target.
+    // This generally occurs if we've forgotten to initialise the
+    // TargetRegistry or we have a bogus target triple.
+    if (!Target) {
+      errs() << Error;
+      throw 1;
+    }
+
+    auto CPU = "generic";
+    auto Features = "";
+
+    TargetOptions opt;
+    auto RM = Optional<Reloc::Model>();
+    auto TheTargetMachine =
+        Target->createTargetMachine(TargetTriple, CPU, Features, opt, RM);
+
+    module->setDataLayout(TheTargetMachine->createDataLayout());
+
+    auto Filename = outputPath;
+    std::error_code EC;
+    raw_fd_ostream dest(Filename, EC, sys::fs::F_None);
+
+    if (EC) {
+      errs() << "Could not open file: " << EC.message();
+      throw 1;
+    }
+
+    legacy::PassManager pass;
+    auto FileType = TargetMachine::CGFT_ObjectFile;
+
+    if (TheTargetMachine->addPassesToEmitFile(pass, dest, FileType)) {
+      errs() << "TheTargetMachine can't emit a file of this type";
+      throw 1;
+    }
+
+    pass.run(*module);
+    dest.flush();
+
+    cout << "Wrote " << Filename << "\n";
+};
+
+
 void CompilerVisitor::visit(const ast::Program &p) {
 };
 void CompilerVisitor::visit(const ast::Args &as) {
@@ -61,8 +133,8 @@ void CompilerVisitor::visit(const ast::Scope &p) {
     /*
     for (auto &d : p.declarations)
         d->accept(*this);
-    p.body->accept(*this);
     */
+    p.body->accept(*this);
 };
 void CompilerVisitor::visit(const ast::IntExpr &e)
 {
@@ -91,7 +163,9 @@ void CompilerVisitor::visit(const ast::CallFactor &s) {
     val = builder.CreateCall(callee, arg_vals, "calltmp");
     */
 };
-void CompilerVisitor::visit(const ast::Block &s) {
+void CompilerVisitor::visit(const ast::Block &s)
+{
+    BasicBlock::Create(*ctx, "b1", builder->GetInsertBlock()->getParent());
 };
 void CompilerVisitor::visit(const ast::TypeSignature &s)
 {
