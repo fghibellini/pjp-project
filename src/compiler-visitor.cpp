@@ -6,18 +6,18 @@ CompilerVisitor::CompilerVisitor()
   , builder(new IRBuilder<>(*ctx))
 {
     module = new Module("my cool jit", *ctx);
+    INT_TYPE = llvm::IntegerType::get(*ctx, INT_BIT_SIZE);
 };
 
 void CompilerVisitor::generate()
 {
-    auto intType = llvm::IntegerType::get(*ctx, sizeof(int) * 8);
-    auto zero = llvm::ConstantInt::get(intType, 0);
+    auto zero = llvm::ConstantInt::get(INT_TYPE, 0);
 
-    FunctionType *fn_type = FunctionType::get(intType, vector<Type *>(1, intType), false);
+    FunctionType *fn_type = FunctionType::get(INT_TYPE, vector<Type *>(1, INT_TYPE), false);
     auto pisfn = Function::Create(fn_type, Function::ExternalLinkage, "pis", module);
 
     //create main method
-    auto mainType = FunctionType::get(intType, vector<llvm::Type *>(), false);
+    auto mainType = FunctionType::get(INT_TYPE, vector<llvm::Type *>(), false);
     auto main = Function::Create(mainType, Function::ExternalLinkage, "main", module);
 
     //body of main
@@ -36,14 +36,13 @@ void CompilerVisitor::generate()
 
 void CompilerVisitor::generateObject(string outputPath)
 {
-    auto intType = llvm::IntegerType::get(*ctx, sizeof(int) * 8);
-    auto zero = llvm::ConstantInt::get(intType, 0);
+    auto zero = llvm::ConstantInt::get(INT_TYPE, 0);
 
-    FunctionType *fn_type = FunctionType::get(intType, vector<Type *>(1, intType), false);
+    FunctionType *fn_type = FunctionType::get(INT_TYPE, vector<Type *>(1, INT_TYPE), false);
     auto pisfn = Function::Create(fn_type, Function::ExternalLinkage, "pis", module);
 
     //create main method
-    auto mainType = FunctionType::get(intType, vector<llvm::Type *>(), false);
+    auto mainType = FunctionType::get(INT_TYPE, vector<llvm::Type *>(), false);
     auto main = Function::Create(mainType, Function::ExternalLinkage, "main", module);
 
     //body of main

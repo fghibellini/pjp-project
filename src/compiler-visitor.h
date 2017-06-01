@@ -89,6 +89,8 @@
 using namespace llvm;
 using namespace llvm::sys;
 
+const int INT_BIT_SIZE = 8 * sizeof(int);
+
 struct CompilerVisitor : public ast::Visitor {
 private:
     Value *val; // visitor return value
@@ -96,6 +98,8 @@ private:
     LLVMContext *ctx;
     Module *module;
     IRBuilder<> *builder;
+
+    Type * INT_TYPE;
 public:
     CompilerVisitor();
     void generate();
