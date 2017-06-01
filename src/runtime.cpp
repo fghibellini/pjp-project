@@ -3,9 +3,12 @@
 
 using namespace std;
 
-extern "C" int pis(int c)
+extern "C" void write(int c)
 {
-    cout << "Cislo: <" << c << ">" << endl;
+    cout << c;
+}
 
-    return 42;
+extern "C" void writeln(int c)
+{
+    cout << c << endl;
 }

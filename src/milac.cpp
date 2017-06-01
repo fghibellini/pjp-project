@@ -105,7 +105,7 @@ int main(int argc, const char *argv[])
 
         CompilerVisitor compilerVisitor;
         res->accept(compilerVisitor);
-        compilerVisitor.generate();
+        compilerVisitor.dumpIR();
     } else {
         /*
         lex::LexemReader lreader(cin);

@@ -5,16 +5,19 @@ CompilerVisitor::CompilerVisitor()
   : ctx(new LLVMContext())
   , builder(new IRBuilder<>(*ctx))
 {
-    module = new Module("my cool jit", *ctx);
+    module = new Module("mila compiler", *ctx);
+
     INT_TYPE = llvm::IntegerType::get(*ctx, INT_BIT_SIZE);
+    VOID_TYPE = llvm::Type::getVoidTy(*ctx);
 };
 
 void CompilerVisitor::generate()
 {
     auto zero = llvm::ConstantInt::get(INT_TYPE, 0);
 
-    FunctionType *fn_type = FunctionType::get(INT_TYPE, vector<Type *>(1, INT_TYPE), false);
-    auto pisfn = Function::Create(fn_type, Function::ExternalLinkage, "pis", module);
+    FunctionType *fn_type = FunctionType::get(VOID_TYPE, vector<Type *>(1, INT_TYPE), false);
+    auto write = Function::Create(fn_type, Function::ExternalLinkage, "write", module);
+    auto writeln = Function::Create(fn_type, Function::ExternalLinkage, "writeln", module);
 
     //create main method
     auto mainType = FunctionType::get(INT_TYPE, vector<llvm::Type *>(), false);
@@ -24,40 +27,24 @@ void CompilerVisitor::generate()
     auto mainBlock = BasicBlock::Create(*ctx, "entry", main);
     builder->SetInsertPoint(mainBlock);
 
-	builder->CreateCall(pisfn, vector<Value *>(1, zero), "calltmp");
+	builder->CreateCall(write, vector<Value *>(1, zero), "calltmp");
 
     //return 0
     builder->CreateRet(zero);
 
     verifyFunction(*main);
+};
+
+void CompilerVisitor::dumpIR()
+{
+	generate();
 
     module->print(errs(), nullptr);
-};
+}
 
 void CompilerVisitor::generateObject(string outputPath)
 {
-    auto zero = llvm::ConstantInt::get(INT_TYPE, 0);
-
-    FunctionType *fn_type = FunctionType::get(INT_TYPE, vector<Type *>(1, INT_TYPE), false);
-    auto pisfn = Function::Create(fn_type, Function::ExternalLinkage, "pis", module);
-
-    //create main method
-    auto mainType = FunctionType::get(INT_TYPE, vector<llvm::Type *>(), false);
-    auto main = Function::Create(mainType, Function::ExternalLinkage, "main", module);
-
-    //body of main
-    auto mainBlock = BasicBlock::Create(*ctx, "entry", main);
-    builder->SetInsertPoint(mainBlock);
-
-	builder->CreateCall(pisfn, vector<Value *>(1, zero), "calltmp");
-
-    //return 0
-    builder->CreateRet(zero);
-
-    verifyFunction(*main);
-
-
-	
+	generate();
 
 	// Initialize the target registry etc.
     InitializeAllTargetInfos();
