@@ -10,8 +10,13 @@ CompilerVisitor::CompilerVisitor()
 
 void CompilerVisitor::generate()
 {
-    //create main method
     auto intType = llvm::IntegerType::get(*ctx, sizeof(int) * 8);
+    auto zero = llvm::ConstantInt::get(intType, 0);
+
+    FunctionType *fn_type = FunctionType::get(intType, vector<Type *>(1, intType), false);
+    auto pisfn = Function::Create(fn_type, Function::ExternalLinkage, "pis", module);
+
+    //create main method
     auto mainType = FunctionType::get(intType, vector<llvm::Type *>(), false);
     auto main = Function::Create(mainType, Function::ExternalLinkage, "main", module);
 
@@ -19,8 +24,9 @@ void CompilerVisitor::generate()
     auto mainBlock = BasicBlock::Create(*ctx, "entry", main);
     builder->SetInsertPoint(mainBlock);
 
+	builder->CreateCall(pisfn, vector<Value *>(1, zero), "calltmp");
+
     //return 0
-    auto zero = llvm::ConstantInt::get(intType, 0);
     builder->CreateRet(zero);
 
     verifyFunction(*main);
@@ -30,8 +36,13 @@ void CompilerVisitor::generate()
 
 void CompilerVisitor::generateObject(string outputPath)
 {
-    //create main method
     auto intType = llvm::IntegerType::get(*ctx, sizeof(int) * 8);
+    auto zero = llvm::ConstantInt::get(intType, 0);
+
+    FunctionType *fn_type = FunctionType::get(intType, vector<Type *>(1, intType), false);
+    auto pisfn = Function::Create(fn_type, Function::ExternalLinkage, "pis", module);
+
+    //create main method
     auto mainType = FunctionType::get(intType, vector<llvm::Type *>(), false);
     auto main = Function::Create(mainType, Function::ExternalLinkage, "main", module);
 
@@ -39,11 +50,15 @@ void CompilerVisitor::generateObject(string outputPath)
     auto mainBlock = BasicBlock::Create(*ctx, "entry", main);
     builder->SetInsertPoint(mainBlock);
 
+	builder->CreateCall(pisfn, vector<Value *>(1, zero), "calltmp");
+
     //return 0
-    auto zero = llvm::ConstantInt::get(intType, 0);
     builder->CreateRet(zero);
 
     verifyFunction(*main);
+
+
+	
 
 	// Initialize the target registry etc.
     InitializeAllTargetInfos();
