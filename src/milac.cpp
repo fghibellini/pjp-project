@@ -101,7 +101,7 @@ int main(int argc, const char *argv[])
                     vector<ast::Statement *>(
                         1,
                         new ast::CallFactor(
-                            "bla",
+                            "writeln",
                             vector<ast::Expr *>(
                                 1,
                                 new ast::IntExpr(35)
@@ -134,7 +134,7 @@ int main(int argc, const char *argv[])
                     vector<ast::Statement *>(
                         1,
                         new ast::CallFactor(
-                            "bla",
+                            "writeln",
                             vector<ast::Expr *>(
                                 1,
                                 new ast::IntExpr(35)

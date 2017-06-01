@@ -139,15 +139,13 @@ void CompilerVisitor::visit(const ast::IndexingFactor &ifac)
 {
 }
 void CompilerVisitor::visit(const ast::CallFactor &s) {
-    /*
-    Function *callee = module->getFunction(fd.name);
+    Function *callee = module->getFunction(s.fname);
     if (callee == nullptr) {
-        throw exception("Invalid function!");
+        throw "Invalid function!";
     }
-    if (callee->arg_size() != fd.expr->size()) {
-        throw exception("Invalid number of args!");
+    if (callee->arg_size() != s.expr.size()) {
+        throw "Invalid number of args!";
     }
-	*/
     vector<Value *> arg_vals;
     for (auto arg : s.expr) {
         arg->accept(*this);
@@ -157,7 +155,7 @@ void CompilerVisitor::visit(const ast::CallFactor &s) {
         arg_vals.push_back(val);
     }
 
-	val = builder->CreateCall(writeln, arg_vals, "calltmp");
+	val = builder->CreateCall(callee, arg_vals, "calltmp");
 };
 void CompilerVisitor::visit(const ast::Block &s)
 {
