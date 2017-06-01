@@ -147,26 +147,27 @@ void CompilerVisitor::visit(const ast::CallFactor &s) {
     if (callee->arg_size() != fd.expr->size()) {
         throw exception("Invalid number of args!");
     }
+	*/
     vector<Value *> arg_vals;
-    for (auto arg : fd.expr) {
-        (*arg)->accept(*this);
+    for (auto arg : s.expr) {
+        arg->accept(*this);
         if (val == nullptr) {
-            throw exception("Couldn't compile argument!");
+            throw "Couldn't compile argument!";
         }
         arg_vals.push_back(val);
     }
-    val = builder.CreateCall(callee, arg_vals, "calltmp");
-    */
-    //auto fourtytwo = llvm::ConstantInt::get(INT_TYPE, 42);
-	//builder->CreateCall(write, vector<Value *>(1, fourtytwo), "calltmp");
+
+	val = builder->CreateCall(writeln, arg_vals, "calltmp");
 };
 void CompilerVisitor::visit(const ast::Block &s)
 {
     auto b = BasicBlock::Create(*ctx, "b1", fn);
     builder->SetInsertPoint(b);
 
-    auto fourtytwo = llvm::ConstantInt::get(INT_TYPE, 42);
-	builder->CreateCall(writeln, vector<Value *>(1, fourtytwo), "calltmp");
+	for (auto stmt : s.statements)
+	{
+		stmt->accept(*this);
+	}
 };
 void CompilerVisitor::visit(const ast::TypeSignature &s)
 {

@@ -98,7 +98,16 @@ int main(int argc, const char *argv[])
             new ast::Scope(
                 vector<ast::Declaration *>(),
                 new ast::Block(
-                    vector<ast::Statement *>(1, new ast::IntExpr(42))
+                    vector<ast::Statement *>(
+                        1,
+                        new ast::CallFactor(
+                            "bla",
+                            vector<ast::Expr *>(
+                                1,
+                                new ast::IntExpr(35)
+                            )
+                        )
+                    )
                 )
             )
         );
@@ -122,7 +131,16 @@ int main(int argc, const char *argv[])
             new ast::Scope(
                 vector<ast::Declaration *>(),
                 new ast::Block(
-                    vector<ast::Statement *>(1, new ast::IntExpr(42))
+                    vector<ast::Statement *>(
+                        1,
+                        new ast::CallFactor(
+                            "bla",
+                            vector<ast::Expr *>(
+                                1,
+                                new ast::IntExpr(35)
+                            )
+                        )
+                    )
                 )
             )
         );
