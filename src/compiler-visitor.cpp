@@ -147,7 +147,8 @@ void CompilerVisitor::visit(const ast::CallFactor &s) {
         throw "Invalid number of args!";
     }
     vector<Value *> arg_vals;
-    for (auto arg : s.expr) {
+    for (auto arg : s.expr)
+    {
         arg->accept(*this);
         if (val == nullptr) {
             throw "Couldn't compile argument!";

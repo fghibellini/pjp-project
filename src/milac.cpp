@@ -84,66 +84,19 @@ int main(int argc, const char *argv[])
 
         lreader.read_all();
     } else if (ir) {
-        /*
         lex::LexemReader lreader(cin);
         Parser parser(lreader);
 
         auto res = parser.parse();
-        */
-
-        auto res = new ast::Program(
-            "prog1",
-            vector<ast::FunctionDecl *>(),
-            vector<ast::ProcedureDecl *>(),
-            new ast::Scope(
-                vector<ast::Declaration *>(),
-                new ast::Block(
-                    vector<ast::Statement *>(
-                        1,
-                        new ast::CallFactor(
-                            "writeln",
-                            vector<ast::Expr *>(
-                                1,
-                                new ast::IntExpr(35)
-                            )
-                        )
-                    )
-                )
-            )
-        );
 
         CompilerVisitor compilerVisitor;
         res->accept(compilerVisitor);
         compilerVisitor.dumpIR();
     } else {
-        /*
         lex::LexemReader lreader(cin);
         Parser parser(lreader);
 
         auto res = parser.parse();
-        */
-
-        cout << "Output file: " << out << endl;
-        auto res = new ast::Program(
-            "prog1",
-            vector<ast::FunctionDecl *>(),
-            vector<ast::ProcedureDecl *>(),
-            new ast::Scope(
-                vector<ast::Declaration *>(),
-                new ast::Block(
-                    vector<ast::Statement *>(
-                        1,
-                        new ast::CallFactor(
-                            "writeln",
-                            vector<ast::Expr *>(
-                                1,
-                                new ast::IntExpr(35)
-                            )
-                        )
-                    )
-                )
-            )
-        );
 
         CompilerVisitor compilerVisitor;
         res->accept(compilerVisitor);

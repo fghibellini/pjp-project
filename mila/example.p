@@ -1,5 +1,5 @@
 program example_program;
 
 begin
-    writeln(42)
+    writeln(99);
 end.
