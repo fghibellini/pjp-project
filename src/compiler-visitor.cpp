@@ -9,43 +9,19 @@ CompilerVisitor::CompilerVisitor()
 
     INT_TYPE = llvm::IntegerType::get(*ctx, INT_BIT_SIZE);
     VOID_TYPE = llvm::Type::getVoidTy(*ctx);
-};
 
-void CompilerVisitor::generate()
-{
-    auto zero = llvm::ConstantInt::get(INT_TYPE, 0);
-
-    FunctionType *fn_type = FunctionType::get(VOID_TYPE, vector<Type *>(1, INT_TYPE), false);
-    auto write = Function::Create(fn_type, Function::ExternalLinkage, "write", module);
-    auto writeln = Function::Create(fn_type, Function::ExternalLinkage, "writeln", module);
-
-    //create main method
-    auto mainType = FunctionType::get(INT_TYPE, vector<llvm::Type *>(), false);
-    auto main = Function::Create(mainType, Function::ExternalLinkage, "main", module);
-
-    //body of main
-    auto mainBlock = BasicBlock::Create(*ctx, "entry", main);
-    builder->SetInsertPoint(mainBlock);
-
-	builder->CreateCall(write, vector<Value *>(1, zero), "calltmp");
-
-    //return 0
-    builder->CreateRet(zero);
-
-    verifyFunction(*main);
+    FunctionType *output_fn_type = FunctionType::get(VOID_TYPE, vector<Type *>(1, INT_TYPE), false);
+    auto write = Function::Create(output_fn_type, Function::ExternalLinkage, "write", module);
+    writeln = Function::Create(output_fn_type, Function::ExternalLinkage, "writeln", module);
 };
 
 void CompilerVisitor::dumpIR()
 {
-	generate();
-
     module->print(errs(), nullptr);
 }
 
 void CompilerVisitor::generateObject(string outputPath)
 {
-	generate();
-
 	// Initialize the target registry etc.
     InitializeAllTargetInfos();
     InitializeAllTargets();
@@ -102,6 +78,24 @@ void CompilerVisitor::generateObject(string outputPath)
 
 
 void CompilerVisitor::visit(const ast::Program &p) {
+
+    //create main method
+    auto mainType = FunctionType::get(INT_TYPE, vector<llvm::Type *>(), false);
+    auto main = Function::Create(mainType, Function::ExternalLinkage, "main", module);
+
+    //body of main
+    //auto mainBlock = BasicBlock::Create(*ctx, "entry", main);
+    //builder->SetInsertPoint(mainBlock);
+	
+	fn = main;
+	p.main->accept(*this);
+
+    //return 0
+    auto zero = llvm::ConstantInt::get(INT_TYPE, 0);
+    builder->CreateRet(zero);
+
+    verifyFunction(*main);
+
 };
 void CompilerVisitor::visit(const ast::Args &as) {
 };
@@ -163,10 +157,16 @@ void CompilerVisitor::visit(const ast::CallFactor &s) {
     }
     val = builder.CreateCall(callee, arg_vals, "calltmp");
     */
+    //auto fourtytwo = llvm::ConstantInt::get(INT_TYPE, 42);
+	//builder->CreateCall(write, vector<Value *>(1, fourtytwo), "calltmp");
 };
 void CompilerVisitor::visit(const ast::Block &s)
 {
-    BasicBlock::Create(*ctx, "b1", builder->GetInsertBlock()->getParent());
+    auto b = BasicBlock::Create(*ctx, "b1", fn);
+    builder->SetInsertPoint(b);
+
+    auto fourtytwo = llvm::ConstantInt::get(INT_TYPE, 42);
+	builder->CreateCall(writeln, vector<Value *>(1, fourtytwo), "calltmp");
 };
 void CompilerVisitor::visit(const ast::TypeSignature &s)
 {

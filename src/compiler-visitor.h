@@ -43,8 +43,8 @@ private:
 
     Type * INT_TYPE;
     Type * VOID_TYPE;
+    Function *writeln; // TODO only for dev purposes
 
-    void generate();
 public:
     CompilerVisitor();
     void dumpIR();
