@@ -17,3 +17,7 @@ build/%.o : src/%.cpp
 
 test-lexer : bin/milac
 	./test-lexer.sh
+
+clean :
+	rm -f bin/*
+	rm -f build/*
