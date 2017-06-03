@@ -236,8 +236,34 @@ void CompilerVisitor::visit(const ast::VarDeclaration &s)
         builder->CreateAlloca(INT_TYPE, nullptr, name);
     }
 };
+
 void CompilerVisitor::visit(const ast::IfStatement &s) {
+    Function *parent_fn = builder->GetInsertBlock()->getParent();
+
+    s.condition->accept(*this);
+    auto condv = val;
+
+    BasicBlock *then_bb = BasicBlock::Create(*ctx, "then", parent_fn);
+    BasicBlock *else_bb = BasicBlock::Create(*ctx, "else");
+    BasicBlock *merge_bb = BasicBlock::Create(*ctx, "ifcont");
+    parent_fn->getBasicBlockList().push_back(else_bb);
+    parent_fn->getBasicBlockList().push_back(merge_bb);
+
+    builder->CreateCondBr(condv, then_bb, else_bb);
+    
+    builder->SetInsertPoint(then_bb);
+    s.trueBranch->accept(*this);
+    BasicBlock *then_last_bb = builder->GetInsertBlock();
+    builder->CreateBr(merge_bb);
+
+    builder->SetInsertPoint(else_bb);
+    s.elseBranch->accept(*this);
+    BasicBlock *else_last_bb = builder->GetInsertBlock();
+    builder->CreateBr(merge_bb);
+
+    builder->SetInsertPoint(merge_bb);
 };
+
 void CompilerVisitor::visit(const ast::ForStatement &s) {
 };
 void CompilerVisitor::visit(const ast::WhileStatement &s) {
@@ -257,6 +283,8 @@ void CompilerVisitor::visit(const ast::BinaryOpExpression &e)
     Value *right = val;
     if (op == "+") {
         val = builder->CreateAdd(left, right, "add_res");
+    } else if (op == "-") {
+        val = builder->CreateSub(left, right, "sub_res");
     } else {
         throw CompilationError("Invalid operator " + op);
     }
