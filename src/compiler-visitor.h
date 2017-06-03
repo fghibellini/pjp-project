@@ -33,18 +33,40 @@ using namespace llvm::sys;
 
 const int INT_BIT_SIZE = 8 * sizeof(int);
 
+class CompilationError : public runtime_error
+{
+    string msg;
+    string what_msg;
+public:
+    CompilationError(const std::string& what_arg);
+    const char* what() const noexcept;
+};
+
+struct BindingValue {
+    enum {
+        VALUE,
+        FUNCTION
+    } type;
+    
+    Value *v;
+    Function *f;
+};
+
 struct CompilerVisitor : public ast::Visitor {
 private:
     Value *val; // visitor return value
     Function *fn; // visitor return value
+    Type *tp; // visitor return value
     LLVMContext *ctx;
     Module *module;
     IRBuilder<> *builder;
-    map<string, Value *> currentScope; // currently visible bindings
+    map<string, BindingValue> currentScope; // currently visible bindings
 
     Type * INT_TYPE;
     Type * VOID_TYPE;
-    Function *writeln; // TODO only for dev purposes
+
+    void addFunctionBinding(string name, Function *f);
+    void addValueBinding(string name, Value *v);
 
 public:
     CompilerVisitor();
