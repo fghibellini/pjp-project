@@ -202,5 +202,17 @@ void CompilerVisitor::visit(const ast::WhileStatement &s) {
 };
 void CompilerVisitor::visit(const ast::EmptyStatement &s) {};
 void CompilerVisitor::visit(const ast::UnaryMinusExpression &e) {};
-void CompilerVisitor::visit(const ast::BinaryOpExpression &e) {};
+void CompilerVisitor::visit(const ast::BinaryOpExpression &e)
+{
+    auto op = e.op;
+    e.left->accept(*this);
+    Value *left = val;
+    e.right->accept(*this);
+    Value *right = val;
+    if (op == "+") {
+        val = builder->CreateAdd(left, right, "binop_res");
+    } else {
+        throw "Invalid operator " + op;
+    }
+};
 

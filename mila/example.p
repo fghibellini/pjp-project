@@ -1,6 +1,6 @@
 program example_program;
 
-const x = 67, y = 32 : integer;
+const x = 67, y = 31 : integer;
 begin
-    writeln(y);
+    writeln(x + y);
 end.
