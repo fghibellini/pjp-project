@@ -105,9 +105,14 @@ void CompilerVisitor::visit(const ast::Program &p) {
     auto mainType = FunctionType::get(INT_TYPE, vector<llvm::Type *>(), false);
     auto main = Function::Create(mainType, Function::ExternalLinkage, "main", module);
 
+    for (auto f : p.functions)
+    {
+        f->accept(*this);
+    }
+
     //body of main
-    //auto mainBlock = BasicBlock::Create(*ctx, "entry", main);
-    //builder->SetInsertPoint(mainBlock);
+    auto mainBlock = BasicBlock::Create(*ctx, "main_entry", main);
+    builder->SetInsertPoint(mainBlock);
 	
 	fn = main;
 	p.main->accept(*this);
@@ -137,22 +142,36 @@ void CompilerVisitor::visit(const ast::FunctionDecl &fd) {
         arg->type->accept(*this);
         arg_types.push_back(tp);
     }
-    /*
-
-    FunctionType *fn_type = FunctionType::get(to_llvm_type(fd->ret_type), arg_types, false);
+    fd.ret_type->accept(*this);
+    FunctionType *fn_type = FunctionType::get(tp, arg_types, false);
 
     fn = Function::Create(fn_type, Function::ExternalLinkage, fd.name, module);
+    addFunctionBinding(fd.name, fn);
 
     int i = 0;
     for (auto &arg : fn->args())
     {
-        arg.setName(fd.args->args[i++].name);
+        arg.setName(fd.args->args[i++]->name);
     }
-    */
+
+    auto fn_block = BasicBlock::Create(*ctx, fd.name + "_entry", fn);
+    builder->SetInsertPoint(fn_block);
+
+    fd.scope->accept(*this);
+
+    auto zero = llvm::ConstantInt::get(INT_TYPE, 0);
+    builder->CreateRet(zero);
+
+    verifyFunction(*fn);
 };
 void CompilerVisitor::visit(const ast::ProcedureDecl &fd) {
 };
 void CompilerVisitor::visit(const ast::Scope &p) {
+    auto old_block = builder->GetInsertBlock();
+    auto b = BasicBlock::Create(*ctx, "scope", old_block->getParent());
+    builder->CreateBr(b);
+    builder->SetInsertPoint(b);
+
     for (auto &d : p.declarations)
     {
         d->accept(*this);
@@ -189,9 +208,6 @@ void CompilerVisitor::visit(const ast::CallFactor &s) {
 };
 void CompilerVisitor::visit(const ast::Block &s)
 {
-    auto b = BasicBlock::Create(*ctx, "b1", fn);
-    builder->SetInsertPoint(b);
-
 
 	for (auto stmt : s.statements)
 	{
