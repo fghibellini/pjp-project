@@ -102,6 +102,11 @@ void CompilerVisitor::visit(const ast::Args &as) {
 void CompilerVisitor::visit(const ast::AssignmentStatement &as) {
 };
 void CompilerVisitor::visit(const ast::IdentExpr &ie) {
+    auto ref = currentScope.find(ie.ident);
+    if (ref == currentScope.end()) {
+        throw string("Referenced invalid variable" + ie.ident);
+    }
+    val = ref->second;
 };
 void CompilerVisitor::visit(const ast::FunctionDecl &fd) {
     /*
@@ -125,10 +130,10 @@ void CompilerVisitor::visit(const ast::FunctionDecl &fd) {
 void CompilerVisitor::visit(const ast::ProcedureDecl &fd) {
 };
 void CompilerVisitor::visit(const ast::Scope &p) {
-    /*
     for (auto &d : p.declarations)
+    {
         d->accept(*this);
-    */
+    }
     p.body->accept(*this);
 };
 void CompilerVisitor::visit(const ast::IntExpr &e)
@@ -163,6 +168,7 @@ void CompilerVisitor::visit(const ast::Block &s)
     auto b = BasicBlock::Create(*ctx, "b1", fn);
     builder->SetInsertPoint(b);
 
+
 	for (auto stmt : s.statements)
 	{
 		stmt->accept(*this);
@@ -171,9 +177,22 @@ void CompilerVisitor::visit(const ast::Block &s)
 void CompilerVisitor::visit(const ast::TypeSignature &s)
 {
 };
-void CompilerVisitor::visit(const ast::ConstDeclaration &s) {};
+void CompilerVisitor::visit(const ast::ConstDeclaration &s)
+{
+    for (auto d : s.decls)
+    {
+        auto v = ConstantInt::get(*ctx, APInt(sizeof(d.second) * 8, d.second));
+        currentScope.emplace(d.first, v);
+    }
+};
 void CompilerVisitor::visit(const ast::VarDeclaration &s)
 {
+    cout << "Visiting declaration" << endl;
+    for (auto name : s.varnames)
+    {
+        cout << "Declaration: " << name << endl;
+        builder->CreateAlloca(INT_TYPE, nullptr, name);
+    }
 };
 void CompilerVisitor::visit(const ast::IfStatement &s) {
 };

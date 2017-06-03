@@ -40,6 +40,7 @@ private:
     LLVMContext *ctx;
     Module *module;
     IRBuilder<> *builder;
+    map<string, Value *> currentScope; // currently visible bindings
 
     Type * INT_TYPE;
     Type * VOID_TYPE;

@@ -285,6 +285,8 @@ ast::Scope * Parser::parseScope()
                     int val = consume_int_literal();
                     bindings.emplace(name,val);
                 }
+                consumeSpecial(":");
+                auto type = parseTypeSignature();
                 consumeSpecial(";");
                 declarations.push_back(new ast::ConstDeclaration(bindings));
             } while (is_ident(current()));
