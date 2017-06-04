@@ -377,6 +377,18 @@ void CompilerVisitor::visit(const ast::BinaryOpExpression &e)
         val = builder->CreateAdd(left, right, "add_res");
     } else if (op == "-") {
         val = builder->CreateSub(left, right, "sub_res");
+    } else if (op == ">") {
+        val = builder->CreateICmpUGT(left, right, "cmpgt_res");
+        val = builder->CreateBitCast(val, INT_TYPE, "cmpgt_res8b");
+    } else if (op == "<") {
+        val = builder->CreateICmpULT(left, right, "cmplt_res");
+        val = builder->CreateBitCast(val, INT_TYPE, "cmplt_res8b");
+    } else if (op == ">=") {
+        val = builder->CreateICmpUGE(left, right, "cmpge_res");
+        val = builder->CreateBitCast(val, INT_TYPE, "cmpge_res8b");
+    } else if (op == "<=") {
+        val = builder->CreateICmpULE(left, right, "cmple_res");
+        val = builder->CreateBitCast(val, INT_TYPE, "cmple_res8b");
     } else {
         throw CompilationError("Invalid operator " + op);
     }
