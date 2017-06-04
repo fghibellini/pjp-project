@@ -130,6 +130,9 @@ void CompilerVisitor::visit(const ast::AssignmentStatement &as) {
     }
     string ident = dynamic_cast<ast::IdentExpr *>(as.left)->ident;
     auto a = currentScope->getVariable(ident);
+    if (a == nullptr) {
+        throw CompilationError("Trying to assign to undeclared variable: " + ident);
+    }
     as.right->accept(*this);
     auto right_val = val;
     val = builder->CreateStore(right_val, a);
@@ -138,7 +141,7 @@ void CompilerVisitor::visit(const ast::AssignmentStatement &as) {
 void CompilerVisitor::visit(const ast::IdentExpr &ie) {
     auto res = currentScope->getBinding(ie.ident);
     if (!res.isPresent() || res.get().getBindingType() == BindingType::FUNCTION) {
-        throw CompilationError("Referenced invalid variable" + ie.ident);
+        throw CompilationError("Referenced invalid variable: " + ie.ident);
     }
     if (res.get().getBindingType() == BindingType::CONSTANT) {
         val = res.get().getValue();
@@ -180,6 +183,9 @@ void CompilerVisitor::visit(const ast::FunctionDecl &fd) {
 void CompilerVisitor::visit(const ast::ProcedureDecl &fd) {
 };
 void CompilerVisitor::visit(const ast::Scope &p) {
+    auto parent_scope = currentScope;
+    currentScope = new LexicalScope(parent_scope);
+
     auto old_block = builder->GetInsertBlock();
     auto b = BasicBlock::Create(*ctx, "scope", old_block->getParent());
     builder->CreateBr(b);
@@ -190,6 +196,9 @@ void CompilerVisitor::visit(const ast::Scope &p) {
         d->accept(*this);
     }
     p.body->accept(*this);
+
+    delete currentScope;
+    currentScope = parent_scope;
 };
 void CompilerVisitor::visit(const ast::IntExpr &e)
 {
@@ -200,6 +209,9 @@ void CompilerVisitor::visit(const ast::IndexingFactor &ifac)
 }
 void CompilerVisitor::visit(const ast::CallFactor &s) {
     Function *callee = currentScope->getFunction(s.fname);
+    if (callee == nullptr) {
+        throw CompilationError("Trying to call undefined function \"" + s.fname + "\"");
+    }
     if (callee->arg_size() != s.expr.size()) {
         throw CompilationError("Invalid number of args!");
     }
@@ -272,6 +284,9 @@ void CompilerVisitor::visit(const ast::IfStatement &s) {
 
 void CompilerVisitor::visit(const ast::ForStatement &s)
 {
+    auto parent_scope = currentScope;
+    currentScope = new LexicalScope(parent_scope);
+
     Function *parent_fn = builder->GetInsertBlock()->getParent();
 
     BasicBlock *condition_bb = BasicBlock::Create(*ctx, "forcond", parent_fn);
@@ -311,6 +326,9 @@ void CompilerVisitor::visit(const ast::ForStatement &s)
     builder->CreateBr(condition_bb);
 
     builder->SetInsertPoint(cont_bb);
+
+    delete currentScope;
+    currentScope = parent_scope;
 };
 
 void CompilerVisitor::visit(const ast::WhileStatement &s) {

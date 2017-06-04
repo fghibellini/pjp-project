@@ -39,8 +39,8 @@ MaybeBindingValue LexicalScope::getBinding(string name)
     LexicalScope *current = this;
     while (current != nullptr)
     {
-        auto ref = bindings.find(name);
-        if (ref != bindings.end()) {
+        auto ref = current->bindings.find(name);
+        if (ref != current->bindings.end()) {
             MaybeBindingValue ret = { true, ref->second };
             return ret;
         } else {
