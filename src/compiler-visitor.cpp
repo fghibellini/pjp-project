@@ -176,9 +176,18 @@ void CompilerVisitor::visit(const ast::FunctionDecl &fd) {
     auto fn_block = BasicBlock::Create(*ctx, fd.name + "_entry", fn);
     builder->SetInsertPoint(fn_block);
 
+    auto parent_scope = currentScope;
+    currentScope = new LexicalScope(parent_scope);
+    auto ret_alloc = builder->CreateAlloca(INT_TYPE, 0, fd.name);
+    currentScope->addVariableBinding(fd.name, ret_alloc);
+
     fd.scope->accept(*this);
 
-    builder->CreateRet(INT_ZERO);
+    val = builder->CreateLoad(ret_alloc, fd.name);
+    builder->CreateRet(val);
+
+    delete currentScope;
+    currentScope = parent_scope;
 
     verifyFunction(*fn);
 };
