@@ -124,6 +124,7 @@ void PrintVisitor::visit(const ast::WhileStatement &s) {
     s.body->accept(*this);
     os << ";";
 };
+void PrintVisitor::visit(const ast::BreakStatement &s) { os << "break"; };
 void PrintVisitor::visit(const ast::EmptyStatement &s) { os << ";"; };
 void PrintVisitor::visit(const ast::UnaryMinusExpression &e) { os << "-"; e.expr->accept(*this); };
 void PrintVisitor::visit(const ast::BinaryOpExpression &e) { os << "("; e.left->accept(*this); os << ")" << e.op << "("; e.right->accept(*this); os << ")"; };

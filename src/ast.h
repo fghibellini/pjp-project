@@ -107,6 +107,13 @@ public:
     virtual void accept(Visitor &v) const;
 };
 
+struct BreakStatement : public Statement
+{
+public:
+    virtual void accept(Visitor &v) const;
+};
+
+
 struct CallFactor : public Expr
 {
     string fname;
@@ -239,6 +246,7 @@ struct Visitor {
     virtual void visit(const TypeSignature &s) = 0;
     virtual void visit(const Args &s) = 0;
     virtual void visit(const ForStatement &s) = 0;
+    virtual void visit(const BreakStatement &s) = 0;
 };
 
 }

@@ -2,6 +2,7 @@
 #define __COMPILER_VISITOR_H__
 
 #include <ostream>
+#include <stack>
 
 #include "ast.h"
 #include "lexical-scope.h"
@@ -44,6 +45,7 @@ private:
     Module *module;
     IRBuilder<> *builder;
     LexicalScope *currentScope; // currently visible bindings
+    stack<BasicBlock *> break_blocks; // targets for break statements
 
     Type * INT_TYPE;
     Type * VOID_TYPE;
@@ -67,6 +69,7 @@ public:
     virtual void visit(const ast::Block &s);
     virtual void visit(const ast::IdentExpr &s);
     virtual void visit(const ast::ConstDeclaration &s);
+    virtual void visit(const ast::BreakStatement &s);
     virtual void visit(const ast::VarDeclaration &s);
     virtual void visit(const ast::AssignmentStatement &s);
     virtual void visit(const ast::IfStatement &s);

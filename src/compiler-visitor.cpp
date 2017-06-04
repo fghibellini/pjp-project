@@ -317,7 +317,9 @@ void CompilerVisitor::visit(const ast::ForStatement &s)
     builder->CreateCondBr(cond_v, body_bb, cont_bb);
     
     builder->SetInsertPoint(body_bb);
+    break_blocks.push(cont_bb);
     s.body->accept(*this);
+    break_blocks.pop();
     Value *cur_iterator_val = builder->CreateLoad(iterator_alloc);
     Value *next_iterator_val = s.downto ?
         builder->CreateSub(cur_iterator_val, toMilaInt(1)) :
@@ -348,7 +350,9 @@ void CompilerVisitor::visit(const ast::WhileStatement &s) {
     builder->CreateCondBr(cond_v, body_bb, cont_bb);
     
     builder->SetInsertPoint(body_bb);
+    break_blocks.push(cont_bb);
     s.body->accept(*this);
+    break_blocks.pop();
     builder->CreateBr(condition_bb);
 
     builder->SetInsertPoint(cont_bb);
@@ -376,5 +380,18 @@ void CompilerVisitor::visit(const ast::BinaryOpExpression &e)
     } else {
         throw CompilationError("Invalid operator " + op);
     }
+};
+
+void CompilerVisitor::visit(const ast::BreakStatement &stmt)
+{
+    if (break_blocks.empty()) {
+        throw CompilationError("Trying to call break outside a for/while");
+    }
+    builder->CreateBr(break_blocks.top());
+
+    // br must be last in block so we create a dummy one
+    // for what follows after the break call
+    auto brBlock = BasicBlock::Create(*ctx, "break_dummy", builder->GetInsertBlock()->getParent());
+    builder->SetInsertPoint(brBlock);
 };
 

@@ -30,6 +30,7 @@ public:
     virtual void visit(const ast::EmptyStatement &s);
     virtual void visit(const ast::UnaryMinusExpression &s);
     virtual void visit(const ast::BinaryOpExpression &s);
+    virtual void visit(const ast::BreakStatement &s);
 };
 
 #endif

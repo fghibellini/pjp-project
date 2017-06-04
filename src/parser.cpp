@@ -172,6 +172,9 @@ ast::Statement * Parser::parseStatement()
     if (is_special(s, "exit")) {
         next();
         return new ast::CallFactor("exit", vector<ast::Expr *>());
+    } else if (is_special(s, "break")) {
+        next();
+        return new ast::BreakStatement();
     } else if (is_special(s, "for")) {
         next();
         string iterator = consume_ident();

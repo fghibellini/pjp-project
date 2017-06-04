@@ -158,6 +158,7 @@ bool is_keyword(string x)
        || x == "while"
        || x == "do"
        || x == "for"
+       || x == "break"
        || x == "to"
        || x == "downto"
        || x == "writeln"

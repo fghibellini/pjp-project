@@ -23,6 +23,7 @@ void IdentExpr::accept(Visitor &v) const { v.visit(*this); }
 void TypeSignature::accept(Visitor &v) const { v.visit(*this); }
 void Args::accept(Visitor &v) const { v.visit(*this); }
 void ForStatement::accept(Visitor &v) const { v.visit(*this); }
+void BreakStatement::accept(Visitor &v) const { v.visit(*this); }
 
 IntExpr::IntExpr(int val) : val(val) {}
 Program::Program(string name, vector<FunctionDecl *> functions, vector<ProcedureDecl *> procedures, Scope *main) : name(name), functions(functions), procedures(procedures), main(main) {}
