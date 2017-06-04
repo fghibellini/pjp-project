@@ -44,11 +44,13 @@ public:
 
 struct BindingValue {
     enum {
-        VALUE,
+        CONSTANT,
+        VARIABLE,
         FUNCTION
     } type;
     
     Value *v;
+    AllocaInst *a;
     Function *f;
 };
 
@@ -67,6 +69,7 @@ private:
 
     void addFunctionBinding(string name, Function *f);
     void addValueBinding(string name, Value *v);
+    void addVariableBinding(string name, AllocaInst *a);
 
 public:
     CompilerVisitor();

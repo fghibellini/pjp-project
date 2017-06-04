@@ -29,13 +29,19 @@ CompilerVisitor::CompilerVisitor()
 
 void CompilerVisitor::addFunctionBinding(string name, Function *f)
 {
-    BindingValue binding = { BindingValue::FUNCTION, nullptr, f };
+    BindingValue binding = { BindingValue::FUNCTION, nullptr, nullptr, f };
     currentScope.emplace(name, binding);
 }
 
 void CompilerVisitor::addValueBinding(string name, Value *v)
 {
-    BindingValue binding = { BindingValue::VALUE, v, nullptr };
+    BindingValue binding = { BindingValue::CONSTANT, v, nullptr, nullptr };
+    currentScope.emplace(name, binding);
+}
+
+void CompilerVisitor::addVariableBinding(string name, AllocaInst *a)
+{
+    BindingValue binding = { BindingValue::VARIABLE, nullptr, a, nullptr };
     currentScope.emplace(name, binding);
 }
 
@@ -127,13 +133,30 @@ void CompilerVisitor::visit(const ast::Program &p) {
 void CompilerVisitor::visit(const ast::Args &as) {
 };
 void CompilerVisitor::visit(const ast::AssignmentStatement &as) {
+    if (dynamic_cast<ast::IdentExpr *>(as.left) == nullptr) {
+        throw CompilationError("Only assignment to identifiers are supported!");
+    }
+    string ident = dynamic_cast<ast::IdentExpr *>(as.left)->ident;
+    auto ref = currentScope.find(ident);
+    if (ref == currentScope.end() || ref->second.type != BindingValue::VARIABLE) {
+        throw CompilationError("Referenced identifier is not a variable: " + ident);
+    }
+    as.right->accept(*this);
+    auto right_val = val;
+    val = builder->CreateStore(right_val, ref->second.a);
 };
 void CompilerVisitor::visit(const ast::IdentExpr &ie) {
     auto ref = currentScope.find(ie.ident);
-    if (ref == currentScope.end() || ref->second.type != BindingValue::VALUE) {
+    if (ref == currentScope.end() || ref->second.type == BindingValue::FUNCTION) {
         throw CompilationError("Referenced invalid variable" + ie.ident);
     }
-    val = ref->second.v;
+    if (ref->second.type == BindingValue::CONSTANT) {
+        val = ref->second.v;
+    } else if (ref->second.type == BindingValue::VARIABLE) {
+        val = builder->CreateLoad(ref->second.a, ref->first);
+    } else {
+        throw CompilationError("Invalid binding value type!");
+    }
 };
 void CompilerVisitor::visit(const ast::FunctionDecl &fd) {
     vector<Type *> arg_types;
@@ -229,11 +252,10 @@ void CompilerVisitor::visit(const ast::ConstDeclaration &s)
 };
 void CompilerVisitor::visit(const ast::VarDeclaration &s)
 {
-    cout << "Visiting declaration" << endl;
     for (auto name : s.varnames)
     {
-        cout << "Declaration: " << name << endl;
-        builder->CreateAlloca(INT_TYPE, nullptr, name);
+        auto a = builder->CreateAlloca(INT_TYPE, 0, name);
+        addVariableBinding(name, a);
     }
 };
 
