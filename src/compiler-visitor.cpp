@@ -15,6 +15,8 @@ CompilerVisitor::CompilerVisitor()
     FunctionType *output_fn_type = FunctionType::get(VOID_TYPE, vector<Type *>(1, INT_TYPE), false);
     currentScope->addFunctionBinding("write", Function::Create(output_fn_type, Function::ExternalLinkage, "write", module));
     currentScope->addFunctionBinding("writeln", Function::Create(output_fn_type, Function::ExternalLinkage, "writeln", module));
+    FunctionType *input_fn_type = FunctionType::get(INT_TYPE, vector<Type *>(), false);
+    currentScope->addFunctionBinding("read", Function::Create(input_fn_type, Function::ExternalLinkage, "read", module));
 };
 
 Value *CompilerVisitor::toMilaInt(int val)
@@ -212,20 +214,34 @@ void CompilerVisitor::visit(const ast::CallFactor &s) {
     if (callee == nullptr) {
         throw CompilationError("Trying to call undefined function \"" + s.fname + "\"");
     }
-    if (callee->arg_size() != s.expr.size()) {
-        throw CompilationError("Invalid number of args!");
-    }
-    vector<Value *> arg_vals;
-    for (auto arg : s.expr)
-    {
-        arg->accept(*this);
-        if (val == nullptr) {
-            throw CompilationError("Couldn't compile argument!");
+    if (s.fname == "read" || s.fname == "readln") {
+        if (s.expr.size() != 1) {
+            throw CompilationError("Invalid number of args!");
         }
-        arg_vals.push_back(val);
-    }
+        auto arg = s.expr[0];
+        if (!dynamic_cast<ast::IdentExpr *>(arg)) {
+            throw CompilationError("Can read only into variables.");
+        }
+        string ident = dynamic_cast<ast::IdentExpr *>(arg)->ident;
+        auto alloc = currentScope->getVariable(ident);
+        val = builder->CreateCall(callee, vector<Value *>(), "calltmp");
+        val = builder->CreateStore(val, alloc, "calltmp");
+    } else {
+        if (callee->arg_size() != s.expr.size()) {
+            throw CompilationError("Invalid number of args!");
+        }
+        vector<Value *> arg_vals;
+        for (auto arg : s.expr)
+        {
+            arg->accept(*this);
+            if (val == nullptr) {
+                throw CompilationError("Couldn't compile argument!");
+            }
+            arg_vals.push_back(val);
+        }
 
-	val = builder->CreateCall(callee, arg_vals, "calltmp");
+        val = builder->CreateCall(callee, arg_vals, "calltmp");
+    }
 };
 void CompilerVisitor::visit(const ast::Block &s)
 {

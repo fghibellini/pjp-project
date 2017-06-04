@@ -12,3 +12,10 @@ extern "C" void writeln(int c)
 {
     cout << c << endl;
 }
+
+extern "C" int read()
+{
+    int n;
+    cin >> n;
+    return n;
+}
