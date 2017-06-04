@@ -51,6 +51,20 @@ Value *CompilerVisitor::toMilaInt(int val)
     return ConstantInt::get(*ctx, APInt(sizeof(int) * 8, val));
 }
 
+int CompilerVisitor::parseIntLiteral(ast::Expr *e)
+{
+    int r = 1;
+    if (dynamic_cast<ast::UnaryMinusExpression *>(e)) {
+        r = -1;
+        e = dynamic_cast<ast::UnaryMinusExpression *>(e)->expr;
+    }
+    if (!dynamic_cast<ast::IntExpr *>(e)) {
+        throw CompilationError("Invalid numeric literal!");
+    }
+    r *= dynamic_cast<ast::IntExpr *>(e)->val;
+    return r;
+}
+
 void CompilerVisitor::dumpIR()
 {
     module->print(errs(), nullptr);
@@ -288,7 +302,47 @@ void CompilerVisitor::visit(const ast::IfStatement &s) {
     builder->SetInsertPoint(merge_bb);
 };
 
-void CompilerVisitor::visit(const ast::ForStatement &s) {
+void CompilerVisitor::visit(const ast::ForStatement &s)
+{
+    Function *parent_fn = builder->GetInsertBlock()->getParent();
+
+    BasicBlock *condition_bb = BasicBlock::Create(*ctx, "forcond", parent_fn);
+    BasicBlock *body_bb = BasicBlock::Create(*ctx, "forbody");
+    BasicBlock *cont_bb = BasicBlock::Create(*ctx, "forcont");
+    parent_fn->getBasicBlockList().push_back(body_bb);
+    parent_fn->getBasicBlockList().push_back(cont_bb);
+
+    if (currentScope.find(s.iterator) != currentScope.end()) {
+        throw CompilationError("Iterator variable " + s.iterator + " already used in this scope");
+    }
+    auto iterator_alloc = builder->CreateAlloca(INT_TYPE, 0, s.iterator);
+    addVariableBinding(s.iterator, iterator_alloc);
+
+    s.val0->accept(*this);
+    Value *val0 = val;
+    s.val1->accept(*this);
+    Value *val1 = val;
+
+    builder->CreateStore(val0, iterator_alloc);
+    builder->CreateBr(condition_bb);
+
+    builder->SetInsertPoint(condition_bb);
+    Value *cond_iterator_val = builder->CreateLoad(iterator_alloc);
+    auto cond_v = s.downto ?
+        builder->CreateICmpUGT(cond_iterator_val, val1, "forcond"):
+        builder->CreateICmpULT(cond_iterator_val, val1, "forcond");
+    builder->CreateCondBr(cond_v, body_bb, cont_bb);
+    
+    builder->SetInsertPoint(body_bb);
+    s.body->accept(*this);
+    Value *cur_iterator_val = builder->CreateLoad(iterator_alloc);
+    Value *next_iterator_val = s.downto ?
+        builder->CreateSub(cur_iterator_val, toMilaInt(1)) :
+        builder->CreateAdd(cur_iterator_val, toMilaInt(1)) ;
+    builder->CreateStore(next_iterator_val, iterator_alloc);
+    builder->CreateBr(condition_bb);
+
+    builder->SetInsertPoint(cont_bb);
 };
 
 void CompilerVisitor::visit(const ast::WhileStatement &s) {

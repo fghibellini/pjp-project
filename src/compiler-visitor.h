@@ -72,6 +72,7 @@ private:
     void addValueBinding(string name, Value *v);
     void addVariableBinding(string name, AllocaInst *a);
     Value *toMilaInt(int val);
+    int parseIntLiteral(ast::Expr *e);
 
 public:
     CompilerVisitor();
