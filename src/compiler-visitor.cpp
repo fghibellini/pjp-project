@@ -167,19 +167,26 @@ void CompilerVisitor::visit(const ast::FunctionDecl &fd) {
     fn = Function::Create(fn_type, Function::ExternalLinkage, fd.name, module);
     currentScope->addFunctionBinding(fd.name, fn);
 
-    int i = 0;
-    for (auto &arg : fn->args())
-    {
-        arg.setName(fd.args->args[i++]->name);
-    }
-
     auto fn_block = BasicBlock::Create(*ctx, fd.name + "_entry", fn);
     builder->SetInsertPoint(fn_block);
 
+    // new scope
     auto parent_scope = currentScope;
     currentScope = new LexicalScope(parent_scope);
+    // return value variable
     auto ret_alloc = builder->CreateAlloca(INT_TYPE, 0, fd.name);
     currentScope->addVariableBinding(fd.name, ret_alloc);
+    // argument variables
+    int i = 0;
+    for (auto &formal : fn->args())
+    {
+        auto actual = fd.args->args[i];
+        auto arg_alloc = builder->CreateAlloca(INT_TYPE, 0, actual->name);
+        currentScope->addVariableBinding(actual->name, arg_alloc);
+        builder->CreateStore(&formal, arg_alloc);
+        formal.setName(fd.args->args[i]->name);
+        i += 1;
+    }
 
     fd.scope->accept(*this);
 
