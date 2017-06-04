@@ -21,6 +21,7 @@ CompilerVisitor::CompilerVisitor()
 
     INT_TYPE = llvm::IntegerType::get(*ctx, INT_BIT_SIZE);
     VOID_TYPE = llvm::Type::getVoidTy(*ctx);
+    INT_ZERO = toMilaInt(0);
 
     FunctionType *output_fn_type = FunctionType::get(VOID_TYPE, vector<Type *>(1, INT_TYPE), false);
     addFunctionBinding("write", Function::Create(output_fn_type, Function::ExternalLinkage, "write", module));
@@ -43,6 +44,11 @@ void CompilerVisitor::addVariableBinding(string name, AllocaInst *a)
 {
     BindingValue binding = { BindingValue::VARIABLE, nullptr, a, nullptr };
     currentScope.emplace(name, binding);
+}
+
+Value *CompilerVisitor::toMilaInt(int val)
+{
+    return ConstantInt::get(*ctx, APInt(sizeof(int) * 8, val));
 }
 
 void CompilerVisitor::dumpIR()
@@ -124,8 +130,7 @@ void CompilerVisitor::visit(const ast::Program &p) {
 	p.main->accept(*this);
 
     //return 0
-    auto zero = llvm::ConstantInt::get(INT_TYPE, 0);
-    builder->CreateRet(zero);
+    builder->CreateRet(INT_ZERO);
 
     verifyFunction(*main);
 
@@ -182,8 +187,7 @@ void CompilerVisitor::visit(const ast::FunctionDecl &fd) {
 
     fd.scope->accept(*this);
 
-    auto zero = llvm::ConstantInt::get(INT_TYPE, 0);
-    builder->CreateRet(zero);
+    builder->CreateRet(INT_ZERO);
 
     verifyFunction(*fn);
 };
@@ -203,7 +207,7 @@ void CompilerVisitor::visit(const ast::Scope &p) {
 };
 void CompilerVisitor::visit(const ast::IntExpr &e)
 {
-    val = ConstantInt::get(*ctx, APInt(sizeof(e.val) * 8, e.val));
+    val = toMilaInt(e.val);
 };
 void CompilerVisitor::visit(const ast::IndexingFactor &ifac)
 {
@@ -246,7 +250,7 @@ void CompilerVisitor::visit(const ast::ConstDeclaration &s)
 {
     for (auto d : s.decls)
     {
-        auto v = ConstantInt::get(*ctx, APInt(sizeof(d.second) * 8, d.second));
+        auto v = toMilaInt(d.second);
         addValueBinding(d.first, v);
     }
 };
@@ -262,25 +266,23 @@ void CompilerVisitor::visit(const ast::VarDeclaration &s)
 void CompilerVisitor::visit(const ast::IfStatement &s) {
     Function *parent_fn = builder->GetInsertBlock()->getParent();
 
-    s.condition->accept(*this);
-    auto condv = val;
-
     BasicBlock *then_bb = BasicBlock::Create(*ctx, "then", parent_fn);
     BasicBlock *else_bb = BasicBlock::Create(*ctx, "else");
     BasicBlock *merge_bb = BasicBlock::Create(*ctx, "ifcont");
     parent_fn->getBasicBlockList().push_back(else_bb);
     parent_fn->getBasicBlockList().push_back(merge_bb);
 
-    builder->CreateCondBr(condv, then_bb, else_bb);
+    s.condition->accept(*this);
+    Value *cond_res = val;
+    auto cond_v = builder->CreateICmpNE(cond_res, INT_ZERO, "ifcond");
+    builder->CreateCondBr(cond_v, then_bb, else_bb);
     
     builder->SetInsertPoint(then_bb);
     s.trueBranch->accept(*this);
-    BasicBlock *then_last_bb = builder->GetInsertBlock();
     builder->CreateBr(merge_bb);
 
     builder->SetInsertPoint(else_bb);
     s.elseBranch->accept(*this);
-    BasicBlock *else_last_bb = builder->GetInsertBlock();
     builder->CreateBr(merge_bb);
 
     builder->SetInsertPoint(merge_bb);
@@ -288,14 +290,38 @@ void CompilerVisitor::visit(const ast::IfStatement &s) {
 
 void CompilerVisitor::visit(const ast::ForStatement &s) {
 };
+
 void CompilerVisitor::visit(const ast::WhileStatement &s) {
+    Function *parent_fn = builder->GetInsertBlock()->getParent();
+
+    BasicBlock *condition_bb = BasicBlock::Create(*ctx, "whilecond", parent_fn);
+    BasicBlock *body_bb = BasicBlock::Create(*ctx, "whilebody");
+    BasicBlock *cont_bb = BasicBlock::Create(*ctx, "whilecont");
+    parent_fn->getBasicBlockList().push_back(body_bb);
+    parent_fn->getBasicBlockList().push_back(cont_bb);
+
+    builder->CreateBr(condition_bb);
+    builder->SetInsertPoint(condition_bb);
+    s.condition->accept(*this);
+    auto cond_res = val;
+    auto cond_v = builder->CreateICmpNE(cond_res, INT_ZERO, "whilecond");
+    builder->CreateCondBr(cond_v, body_bb, cont_bb);
+    
+    builder->SetInsertPoint(body_bb);
+    s.body->accept(*this);
+    builder->CreateBr(condition_bb);
+
+    builder->SetInsertPoint(cont_bb);
 };
+
 void CompilerVisitor::visit(const ast::EmptyStatement &s) {};
+
 void CompilerVisitor::visit(const ast::UnaryMinusExpression &e)
 {
     e.expr->accept(*this);
     val = builder->CreateNeg(val, "neg_res");
 };
+
 void CompilerVisitor::visit(const ast::BinaryOpExpression &e)
 {
     auto op = e.op;

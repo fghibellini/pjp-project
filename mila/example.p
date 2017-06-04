@@ -6,13 +6,9 @@ end;
 const x = 67, y = 32, true = 1, false = 0 : integer;
 var v1 : integer;
 begin
-    v1 := 87;
-    writeln(v1);
-    v1 := v1 + 2;
-    writeln(v1);
-    if (false) then begin
-        writeln(11);
-    end else begin
-        writeln(22);
+    v1 := 10;
+    while (v1) do begin
+        writeln(v1);
+        v1 := v1 - 1;
     end;
 end.

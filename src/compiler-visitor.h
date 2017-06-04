@@ -66,10 +66,12 @@ private:
 
     Type * INT_TYPE;
     Type * VOID_TYPE;
+    Value * INT_ZERO;
 
     void addFunctionBinding(string name, Function *f);
     void addValueBinding(string name, Value *v);
     void addVariableBinding(string name, AllocaInst *a);
+    Value *toMilaInt(int val);
 
 public:
     CompilerVisitor();
