@@ -6,7 +6,7 @@ LIBS = `llvm-config --libs all`
 bin/example : build/example.o build/runtime.o
 	clang++ -o $@ $^
 
-bin/milac : build/milac.o build/parser.o build/lex.o build/ast.o build/print-visitor.o build/compiler-visitor.o
+bin/milac : build/milac.o build/parser.o build/lex.o build/ast.o build/print-visitor.o build/compiler-visitor.o build/lexical-scope.o build/compilation-error.o
 	clang++ -std=c++14 -I ./src -o $@ $^ $(LDFLAGS) $(LIBS) 	
 
 build/example.o : mila/example.p bin/milac 

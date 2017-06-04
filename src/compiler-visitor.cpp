@@ -1,21 +1,10 @@
 
 #include "compiler-visitor.h"
 
-CompilationError::CompilationError(const std::string& what_arg)
-: runtime_error(what_arg)
-, msg(what_arg)
-, what_msg(("COMPILATION_ERROR [" + msg + "]").c_str())
-{
-}
-
-const char* CompilationError::what() const noexcept
-{
-    return what_msg.c_str(); 
-}
-
 CompilerVisitor::CompilerVisitor()
   : ctx(new LLVMContext())
   , builder(new IRBuilder<>(*ctx))
+  , currentScope(new LexicalScope())
 {
     module = new Module("mila compiler", *ctx);
 
@@ -24,27 +13,9 @@ CompilerVisitor::CompilerVisitor()
     INT_ZERO = toMilaInt(0);
 
     FunctionType *output_fn_type = FunctionType::get(VOID_TYPE, vector<Type *>(1, INT_TYPE), false);
-    addFunctionBinding("write", Function::Create(output_fn_type, Function::ExternalLinkage, "write", module));
-    addFunctionBinding("writeln", Function::Create(output_fn_type, Function::ExternalLinkage, "writeln", module));
+    currentScope->addFunctionBinding("write", Function::Create(output_fn_type, Function::ExternalLinkage, "write", module));
+    currentScope->addFunctionBinding("writeln", Function::Create(output_fn_type, Function::ExternalLinkage, "writeln", module));
 };
-
-void CompilerVisitor::addFunctionBinding(string name, Function *f)
-{
-    BindingValue binding = { BindingValue::FUNCTION, nullptr, nullptr, f };
-    currentScope.emplace(name, binding);
-}
-
-void CompilerVisitor::addValueBinding(string name, Value *v)
-{
-    BindingValue binding = { BindingValue::CONSTANT, v, nullptr, nullptr };
-    currentScope.emplace(name, binding);
-}
-
-void CompilerVisitor::addVariableBinding(string name, AllocaInst *a)
-{
-    BindingValue binding = { BindingValue::VARIABLE, nullptr, a, nullptr };
-    currentScope.emplace(name, binding);
-}
 
 Value *CompilerVisitor::toMilaInt(int val)
 {
@@ -149,34 +120,35 @@ void CompilerVisitor::visit(const ast::Program &p) {
     verifyFunction(*main);
 
 };
+
 void CompilerVisitor::visit(const ast::Args &as) {
 };
+
 void CompilerVisitor::visit(const ast::AssignmentStatement &as) {
     if (dynamic_cast<ast::IdentExpr *>(as.left) == nullptr) {
         throw CompilationError("Only assignment to identifiers are supported!");
     }
     string ident = dynamic_cast<ast::IdentExpr *>(as.left)->ident;
-    auto ref = currentScope.find(ident);
-    if (ref == currentScope.end() || ref->second.type != BindingValue::VARIABLE) {
-        throw CompilationError("Referenced identifier is not a variable: " + ident);
-    }
+    auto a = currentScope->getVariable(ident);
     as.right->accept(*this);
     auto right_val = val;
-    val = builder->CreateStore(right_val, ref->second.a);
+    val = builder->CreateStore(right_val, a);
 };
+
 void CompilerVisitor::visit(const ast::IdentExpr &ie) {
-    auto ref = currentScope.find(ie.ident);
-    if (ref == currentScope.end() || ref->second.type == BindingValue::FUNCTION) {
+    auto res = currentScope->getBinding(ie.ident);
+    if (!res.isPresent() || res.get().getBindingType() == BindingType::FUNCTION) {
         throw CompilationError("Referenced invalid variable" + ie.ident);
     }
-    if (ref->second.type == BindingValue::CONSTANT) {
-        val = ref->second.v;
-    } else if (ref->second.type == BindingValue::VARIABLE) {
-        val = builder->CreateLoad(ref->second.a, ref->first);
+    if (res.get().getBindingType() == BindingType::CONSTANT) {
+        val = res.get().getValue();
+    } else if (res.get().getBindingType() == BindingType::VARIABLE) {
+        val = builder->CreateLoad(res.get().getVariable(), ie.ident);
     } else {
         throw CompilationError("Invalid binding value type!");
     }
 };
+
 void CompilerVisitor::visit(const ast::FunctionDecl &fd) {
     vector<Type *> arg_types;
     for (auto arg: fd.args->args)
@@ -188,7 +160,7 @@ void CompilerVisitor::visit(const ast::FunctionDecl &fd) {
     FunctionType *fn_type = FunctionType::get(tp, arg_types, false);
 
     fn = Function::Create(fn_type, Function::ExternalLinkage, fd.name, module);
-    addFunctionBinding(fd.name, fn);
+    currentScope->addFunctionBinding(fd.name, fn);
 
     int i = 0;
     for (auto &arg : fn->args())
@@ -227,11 +199,7 @@ void CompilerVisitor::visit(const ast::IndexingFactor &ifac)
 {
 }
 void CompilerVisitor::visit(const ast::CallFactor &s) {
-    auto binding_value = currentScope.find(s.fname);
-    if (binding_value == currentScope.end() || binding_value->second.type != BindingValue::FUNCTION) {
-        throw CompilationError("Invalid function!");
-    }
-    Function *callee = binding_value->second.f;
+    Function *callee = currentScope->getFunction(s.fname);
     if (callee->arg_size() != s.expr.size()) {
         throw CompilationError("Invalid number of args!");
     }
@@ -265,7 +233,7 @@ void CompilerVisitor::visit(const ast::ConstDeclaration &s)
     for (auto d : s.decls)
     {
         auto v = toMilaInt(d.second);
-        addValueBinding(d.first, v);
+        currentScope->addValueBinding(d.first, v);
     }
 };
 void CompilerVisitor::visit(const ast::VarDeclaration &s)
@@ -273,7 +241,7 @@ void CompilerVisitor::visit(const ast::VarDeclaration &s)
     for (auto name : s.varnames)
     {
         auto a = builder->CreateAlloca(INT_TYPE, 0, name);
-        addVariableBinding(name, a);
+        currentScope->addVariableBinding(name, a);
     }
 };
 
@@ -312,11 +280,11 @@ void CompilerVisitor::visit(const ast::ForStatement &s)
     parent_fn->getBasicBlockList().push_back(body_bb);
     parent_fn->getBasicBlockList().push_back(cont_bb);
 
-    if (currentScope.find(s.iterator) != currentScope.end()) {
+    if (currentScope->getBinding(s.iterator).isPresent()) {
         throw CompilationError("Iterator variable " + s.iterator + " already used in this scope");
     }
     auto iterator_alloc = builder->CreateAlloca(INT_TYPE, 0, s.iterator);
-    addVariableBinding(s.iterator, iterator_alloc);
+    currentScope->addVariableBinding(s.iterator, iterator_alloc);
 
     s.val0->accept(*this);
     Value *val0 = val;

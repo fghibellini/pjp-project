@@ -4,6 +4,8 @@
 #include <ostream>
 
 #include "ast.h"
+#include "lexical-scope.h"
+#include "compilation-error.h"
 
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/APInt.h"
@@ -33,27 +35,6 @@ using namespace llvm::sys;
 
 const int INT_BIT_SIZE = 8 * sizeof(int);
 
-class CompilationError : public runtime_error
-{
-    string msg;
-    string what_msg;
-public:
-    CompilationError(const std::string& what_arg);
-    const char* what() const noexcept;
-};
-
-struct BindingValue {
-    enum {
-        CONSTANT,
-        VARIABLE,
-        FUNCTION
-    } type;
-    
-    Value *v;
-    AllocaInst *a;
-    Function *f;
-};
-
 struct CompilerVisitor : public ast::Visitor {
 private:
     Value *val; // visitor return value
@@ -62,15 +43,12 @@ private:
     LLVMContext *ctx;
     Module *module;
     IRBuilder<> *builder;
-    map<string, BindingValue> currentScope; // currently visible bindings
+    LexicalScope *currentScope; // currently visible bindings
 
     Type * INT_TYPE;
     Type * VOID_TYPE;
     Value * INT_ZERO;
 
-    void addFunctionBinding(string name, Function *f);
-    void addValueBinding(string name, Value *v);
-    void addVariableBinding(string name, AllocaInst *a);
     Value *toMilaInt(int val);
     int parseIntLiteral(ast::Expr *e);
 
