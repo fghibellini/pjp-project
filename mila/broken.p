@@ -1,11 +1,7 @@
 program example_program;
 
-function fact(n : integer) : integer;
-var x : integer;
-begin
-    x := n <= 1;
-    writeln(x);
-    if (x) then begin
+function fact(n : integer) : integer; begin
+    if (n <= 1) then begin
         fact := 10;
     end else begin
         fact := 20;

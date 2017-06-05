@@ -45,6 +45,7 @@ private:
     Module *module;
     IRBuilder<> *builder;
     LexicalScope *currentScope; // currently visible bindings
+    map<string,Function *> functions;
     stack<BasicBlock *> break_blocks; // targets for break statements
 
     Type * INT_TYPE;
@@ -53,6 +54,8 @@ private:
 
     Value *toMilaInt(int val);
     int parseIntLiteral(ast::Expr *e);
+    void declareFunction(const ast::FunctionDecl &fd);
+    Function *getFunction(string name);
 
 public:
     CompilerVisitor();

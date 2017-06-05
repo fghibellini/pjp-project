@@ -59,7 +59,7 @@ Function *LexicalScope::getFunction(string name)
     }
     auto val = binding.get();
     if (val.getBindingType() != BindingType::FUNCTION) {
-        throw CompilationError("Expected function!");
+        throw CompilationError("Expected function for: " + name);
     }
     return val.getFunction();
 }

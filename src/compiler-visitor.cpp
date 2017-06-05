@@ -13,10 +13,10 @@ CompilerVisitor::CompilerVisitor()
     INT_ZERO = toMilaInt(0);
 
     FunctionType *output_fn_type = FunctionType::get(VOID_TYPE, vector<Type *>(1, INT_TYPE), false);
-    currentScope->addFunctionBinding("write", Function::Create(output_fn_type, Function::ExternalLinkage, "write", module));
-    currentScope->addFunctionBinding("writeln", Function::Create(output_fn_type, Function::ExternalLinkage, "writeln", module));
+    functions.emplace("write", Function::Create(output_fn_type, Function::ExternalLinkage, "write", module));
+    functions.emplace("writeln", Function::Create(output_fn_type, Function::ExternalLinkage, "writeln", module));
     FunctionType *input_fn_type = FunctionType::get(INT_TYPE, vector<Type *>(), false);
-    currentScope->addFunctionBinding("read", Function::Create(input_fn_type, Function::ExternalLinkage, "read", module));
+    functions.emplace("read", Function::Create(input_fn_type, Function::ExternalLinkage, "read", module));
 };
 
 Value *CompilerVisitor::toMilaInt(int val)
@@ -104,6 +104,11 @@ void CompilerVisitor::visit(const ast::Program &p) {
     auto mainType = FunctionType::get(INT_TYPE, vector<llvm::Type *>(), false);
     auto main = Function::Create(mainType, Function::ExternalLinkage, "main", module);
 
+    for (auto &f : p.functions)
+    {
+        declareFunction(*f);
+    }
+
     for (auto f : p.functions)
     {
         f->accept(*this);
@@ -154,7 +159,18 @@ void CompilerVisitor::visit(const ast::IdentExpr &ie) {
     }
 };
 
-void CompilerVisitor::visit(const ast::FunctionDecl &fd) {
+Function *CompilerVisitor::getFunction(string name)
+{
+    auto iter = functions.find(name);
+    if (iter == functions.end()) {
+        return nullptr;
+    } else {
+        return iter->second;
+    }
+}
+
+void CompilerVisitor::declareFunction(const ast::FunctionDecl &fd)
+{
     vector<Type *> arg_types;
     for (auto arg: fd.args->args)
     {
@@ -165,7 +181,12 @@ void CompilerVisitor::visit(const ast::FunctionDecl &fd) {
     FunctionType *fn_type = FunctionType::get(tp, arg_types, false);
 
     fn = Function::Create(fn_type, Function::ExternalLinkage, fd.name, module);
-    currentScope->addFunctionBinding(fd.name, fn);
+    functions.emplace(fd.name, fn);
+}
+    
+void CompilerVisitor::visit(const ast::FunctionDecl &fd)
+{
+    fn = getFunction(fd.name);
 
     auto fn_block = BasicBlock::Create(*ctx, fd.name + "_entry", fn);
     builder->SetInsertPoint(fn_block);
@@ -226,7 +247,7 @@ void CompilerVisitor::visit(const ast::IndexingFactor &ifac)
 {
 }
 void CompilerVisitor::visit(const ast::CallFactor &s) {
-    Function *callee = currentScope->getFunction(s.fname);
+    Function *callee = getFunction(s.fname);
     if (callee == nullptr) {
         throw CompilationError("Trying to call undefined function \"" + s.fname + "\"");
     }
@@ -409,18 +430,25 @@ void CompilerVisitor::visit(const ast::BinaryOpExpression &e)
         val = builder->CreateAdd(left, right, "add_res");
     } else if (op == "-") {
         val = builder->CreateSub(left, right, "sub_res");
+    } else if (op == "*") {
+        val = builder->CreateMul(left, right, "mul_res");
+    } else if (op == "div") {
+        val = builder->CreateSDiv(left, right, "div_res");
     } else if (op == ">") {
-        val = builder->CreateICmpUGT(left, right, "cmpgt_res");
+        val = builder->CreateICmpSGT(left, right, "cmpgt_res");
         val = builder->CreateBitCast(val, INT_TYPE, "cmpgt_res8b");
     } else if (op == "<") {
-        val = builder->CreateICmpULT(left, right, "cmplt_res");
+        val = builder->CreateICmpSLT(left, right, "cmplt_res");
         val = builder->CreateBitCast(val, INT_TYPE, "cmplt_res8b");
     } else if (op == ">=") {
-        val = builder->CreateICmpUGE(left, right, "cmpge_res");
+        val = builder->CreateICmpSGE(left, right, "cmpge_res");
         val = builder->CreateBitCast(val, INT_TYPE, "cmpge_res8b");
     } else if (op == "<=") {
-        val = builder->CreateICmpULE(left, right, "cmple_res");
+        val = builder->CreateICmpSLE(left, right, "cmple_res");
         val = builder->CreateBitCast(val, INT_TYPE, "cmple_res8b");
+    } else if (op == "=") {
+        val = builder->CreateICmpEQ(left, right, "cmpeq_res");
+        val = builder->CreateBitCast(val, INT_TYPE, "cmpeq_res8b");
     } else {
         throw CompilationError("Invalid operator " + op);
     }
