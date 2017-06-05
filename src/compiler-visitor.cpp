@@ -436,19 +436,19 @@ void CompilerVisitor::visit(const ast::BinaryOpExpression &e)
         val = builder->CreateSDiv(left, right, "div_res");
     } else if (op == ">") {
         val = builder->CreateICmpSGT(left, right, "cmpgt_res");
-        val = builder->CreateBitCast(val, INT_TYPE, "cmpgt_res8b");
+        val = builder->CreateSExtOrBitCast(val, INT_TYPE, "cmpgt_res8b");
     } else if (op == "<") {
         val = builder->CreateICmpSLT(left, right, "cmplt_res");
-        val = builder->CreateBitCast(val, INT_TYPE, "cmplt_res8b");
+        val = builder->CreateSExtOrBitCast(val, INT_TYPE, "cmplt_res8b");
     } else if (op == ">=") {
         val = builder->CreateICmpSGE(left, right, "cmpge_res");
-        val = builder->CreateBitCast(val, INT_TYPE, "cmpge_res8b");
+        val = builder->CreateSExtOrBitCast(val, INT_TYPE, "cmpge_res8b");
     } else if (op == "<=") {
         val = builder->CreateICmpSLE(left, right, "cmple_res");
-        val = builder->CreateBitCast(val, INT_TYPE, "cmple_res8b");
+        val = builder->CreateSExtOrBitCast(val, INT_TYPE, "cmple_res8b");
     } else if (op == "=") {
         val = builder->CreateICmpEQ(left, right, "cmpeq_res");
-        val = builder->CreateBitCast(val, INT_TYPE, "cmpeq_res8b");
+        val = builder->CreateSExtOrBitCast(val, INT_TYPE, "cmpeq_res8b");
     } else {
         throw CompilationError("Invalid operator " + op);
     }
